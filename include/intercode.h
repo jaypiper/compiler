@@ -1,0 +1,108 @@
+#ifndef INTERCODE_H
+#define INTERCODE_H
+
+#include "Node.h"
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// #define TP_INT 1
+// #define TP_FLOAT 2
+#define MAX_INST_NUM 4096
+#define MAX_ENTRY_NUM 2048
+#define MAX_INST_WIDTH 64
+
+enum EXP_TYPE{EXP_INT = 1, EXP_FLOAT, EXP_VAR, EXP_ADDR}; //exp返回类型
+enum InterType_ {TP_INT=1, TP_FLOAT, TP_ARRAY, TP_FUNC, TP_STRUCTURE}; //数据结构类型
+
+typedef struct VAR_LIST{       // 存储struct内部变量
+    char* name;                //变量名
+    struct VAR_TYPE* var_type; //变量类型
+    struct VAR_LIST* next;     //指针
+    struct VAR_LIST* pre;
+    int offset;                //变量开头位置想对于结构体开始的位置
+    int followed_sz;           //跟随变量大小（方便中间结果计算）
+    int var_id;                //在计算中如果该变量开始位置被载入临时变量，则存储变量id
+}Vlist;
+
+typedef struct VAR_TYPE{       //存储变量的类型信息
+    int type;                  //变量类别：BASIC, ARRAY...
+    int width;
+    union{
+        struct{                
+            // int basic_type;     //对于BASIC 记录为int类型还是float类型
+            int basic_int;      //int类型的值
+            float basic_float;  //float类型的值
+        };
+        /* Type-Array */
+        struct{
+            int sz;             //数组大小
+            int ele_width;      //数组中元素宽度
+            struct VAR_TYPE* next; //数组中元素的类型
+        };
+        /* structure and structure_var */
+        struct{
+            struct VAR_LIST* _vlist;  //结构体中变量链表
+        };
+        /* Type-FUNC */
+        struct{
+            struct VAR_LIST* func_para;  //函数参数
+            struct VAR_TYPE* ret_type;   //函数返回类型
+        };
+    };
+}Vtype;
+
+typedef struct HASH_ENTRY{  //符号表中元素结构（实际上并没有使用hash表实现）
+    char* name;             //符号名
+    int var_id;             //符号开始id (1)定义初始化 (2)stmt初始化
+    struct HASH_ENTRY* next;
+    Vtype* type;            //符号类型 
+}Entry;
+
+typedef struct EXP_RET{     //EXP返回类型，记录EXP解析的信息
+    int _type;              //该EXP数据的类型：常数EXP_INT/FLOAT, 变量id EXP_VAR
+    union{
+        int ival;
+        float fval;
+        struct {
+            char* name;     //好像没有用？
+            Vtype* _vtype;  //对于复杂类型，输出其类型信息
+        };
+        
+    };
+    int var_id;
+    struct INST_LIST* truelist;
+    struct INST_LIST* falselist;
+    // int addr_id;
+}Eret;
+
+typedef struct INST_LIST{
+    int inst_id;
+    struct INST_LIST* next;
+    struct INST_LIST* tail;
+}Ilist;
+
+// typedef struct STMT_RET{
+//     struct INST_LIST* nextlist;
+// }
+
+// void gen_intercode(Node* root);
+typedef struct INFO{
+    int is_id;
+    int id;
+    int value;
+}Info;
+
+typedef struct INSTTYPE{
+    enum{TP_FUNCT=1, TP_LABEL, TP_DEREF, TP_ASSIGN, TP_OP, TP_ADD, TP_SUB, TP_MUL, TP_DIV, TP_ADDR, TP_STAR, TP_GOTO, TP_IF, TP_RETURN, TP_DEC, TP_ARG, TP_CALL, TP_PARAM, TP_READ, TP_WRITE}inst_type;
+    int type;
+    char* name;
+    Info src1;
+    char* op;
+    Info src2;
+    Info dst;
+}InstType;
+
+#endif
+
