@@ -1,7 +1,6 @@
 %{
     #include <stdio.h>  
     #include "Node.h"
-    #include "lexical.c"
     Node* root;
     // char* msg;
     extern int syn_correct;

@@ -1,7 +1,7 @@
 %{
     #include <assert.h>
-    #include "syntax.h"
     #include "Node.h"
+    #include "syntax.h"
 
     int yycolumn = 1;
     #define YY_USER_ACTION \
