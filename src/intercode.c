@@ -35,6 +35,14 @@ static Eret* addr_process(Eret* _exp);
 
 static Entry* head = NULL;  //记录一下所有存在的变量
 
+static Vtype* alloc_int_type(int val){
+    Vtype* ret = malloc(sizeof(Vtype));
+    ret->type = TP_INT;
+    ret->width = 4;
+    ret->basic_int = val;
+    return ret;
+}
+
 // static Inst all_inst[MAX_INST_NUM];
 char* insts[MAX_INST_NUM];
 InstType* instType[MAX_INST_NUM];
@@ -66,6 +74,31 @@ void gen_intercode(Node* root, char* file){
 
 void intercode_init(){
     head = NULL;
+    // add builtin syscall func. syscall(no, val1, val2, val3)
+    Vtype* sys_type = malloc(sizeof(Vtype));
+    sys_type->type = TP_FUNC;
+    sys_type->ret_type = alloc_int_type(0);
+    static char* param_names[] = {"no", "val1", "val2", "val3"};
+
+    Vlist* sys_param = NULL;
+    Vlist* cur_param = NULL;
+    for(int i = 0; i < 4; i++){
+        Vlist* param_i = malloc(sizeof(Vlist));
+        if(!sys_param) sys_param = param_i;
+        param_i->name = param_names[i];
+        Vtype* type_i = alloc_int_type(0);
+        param_i->var_type = type_i;
+        if(cur_param)cur_param->next = param_i;
+        param_i->pre = cur_param;
+        cur_param = param_i;
+    }
+
+    sys_type->func_para = sys_param;
+
+    Entry* sys_entry = malloc(sizeof(Entry));
+    sys_entry->type = sys_type;
+    sys_entry->name = "syscall";
+    _insert(sys_entry);
 }
 
 static void _insert(Entry* _entry){
