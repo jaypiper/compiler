@@ -1,7 +1,7 @@
 #ifndef INTERCODE_H
 #define INTERCODE_H
 
-#include "Node.h"
+#include <Node.h>
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,6 +1,6 @@
 %{
     #include <stdio.h>  
-    #include "Node.h"
+    #include <Node.h>
     Node* root;
     // char* msg;
     extern int syn_correct;

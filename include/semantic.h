@@ -1,7 +1,7 @@
 #ifndef SEMANTIC_H
 #define SEMANTIC_H
 
-#include "Node.h"
+#include <Node.h>
 #include <assert.h>
 #include <stdio.h>
 // #define DEBUG

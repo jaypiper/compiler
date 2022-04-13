@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-// #include "intercode.h"
 
 #define MAX_CHILD_NUM 8
 enum NODE_TYPE{is_token = 1, not_token};

@@ -1,4 +1,4 @@
-#include "Node.h"
+#include <Node.h>
 
 int syn_correct = 1;
 int pre_lineno = -1;

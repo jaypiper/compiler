@@ -1,4 +1,4 @@
-#include "assembly.h"
+#include <assembly.h>
 
 extern char* insts[];
 extern InstType* instType[];

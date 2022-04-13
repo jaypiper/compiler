@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include "Node.h"
-#include "syntax.h"
-#include "semantic.h"
-#include "assembly.h"
+#include <Node.h>
+#include <syntax.h>
+#include <semantic.h>
+#include <assembly.h>
 extern FILE* yyin;
 extern Node* root;
 extern int syn_correct;

@@ -1,4 +1,5 @@
-#include "intercode.h"
+#include <intercode.h>
+#include <common.h>
 
 static void intercode_init();
 static  void _insert(Entry* _entry);

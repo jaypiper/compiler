@@ -1,4 +1,4 @@
-#include "semantic.h"
+#include <semantic.h>
 static unsigned int hash_pjw(char* name);
 static void hash_init();
 static void stack_init();
