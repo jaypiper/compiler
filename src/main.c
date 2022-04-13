@@ -7,7 +7,7 @@ extern FILE* yyin;
 extern Node* root;
 extern int syn_correct;
 extern int yyparse (void);
-void gen_intercode(Node* root);
+void gen_intercode(Node* root, char* file);
 
 int main(int argc, char** argv){
     if(argc > 1){
@@ -21,7 +21,7 @@ int main(int argc, char** argv){
     // preorder_traversal(root, 0);
     // semantic_check(root);
     assert(syn_correct);
-    gen_intercode(root);
-    print_mips(argv[2]);
+    gen_intercode(root, argv[2]);
+    // print_mips(argv[2]);
     return 0;
 }

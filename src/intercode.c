@@ -46,19 +46,22 @@ int label_num = 0;
 // Vtype* _type_int;
 // Vtype* _type_float;
 
-void print_insts(){
-    // for(int i = 0; i < inst_num; i++) {
-    //     printf("%s\n", insts[i]);
-    //     if(i < inst_num-1 && strncmp(insts[i + 1], "FUNCTION", 8) == 0) printf("\n");
-    // }
+void print_insts(char* filename){
+#ifdef DISPLAY_INTERCODE
+    FILE* fp = fopen(filename, "w");
+    for(int i = 0; i < inst_num; i++) {
+        fprintf(fp, "%s\n", insts[i]);
+        if(i < inst_num-1 && strncmp(insts[i + 1], "FUNCTION", 8) == 0) fprintf(fp, "\n");
+    }
+    if(inst_num >= 1) fprintf(fp, "%s", insts[inst_num-1]);
+#endif
     assert(inst_num == type_num);
-    // if(inst_num >= 1) printf("%s", insts[inst_num-1]);
 }
 
-void gen_intercode(Node* root){
+void gen_intercode(Node* root, char* file){
     intercode_init();
     program(root);
-    print_insts();
+    print_insts(file);
 }
 
 void intercode_init(){
