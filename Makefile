@@ -1,5 +1,8 @@
 SRC_DIR  = ./src
 BUILD_DIR = ./build
+TEST_DIR = ./testcase
+
+TEST ?= test
 INCLUDE_DIR = ./include $(BUILD_DIR)
 SYNTAX_SRC = $(SRC_DIR)/syntax.y
 LEXICAL_SRC = $(SRC_DIR)/lexical.l
@@ -22,6 +25,9 @@ syntax: $(SYNTAX_SRC)
 
 lexical: $(LEXICAL_SRC) syntax
 	flex -o $(LEXICAL_OUTPUT) $(LEXICAL_SRC)
+
+test: lexical
+	$(OUTPUT) $(TEST_DIR)/$(TEST).c $(BUILD_DIR)/$(TEST).out
 
 clean:
 	rm -rf $(BUILD_DIR)
