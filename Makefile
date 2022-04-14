@@ -23,11 +23,11 @@ syntax: $(SYNTAX_SRC)
 	mkdir -p $(BUILD_DIR)
 	bison -d $(SYNTAX_SRC) -o $(SYNTAX_OUTPUT)
 
-lexical: $(LEXICAL_SRC) syntax
+lexical: $(LEXICAL_SRC) syntax $(SRCS)
 	flex -o $(LEXICAL_OUTPUT) $(LEXICAL_SRC)
 
-test: lexical
-	$(OUTPUT) $(TEST_DIR)/$(TEST).c $(BUILD_DIR)/$(TEST).out
+test: parser
+	$(OUTPUT) $(TEST_DIR)/$(TEST).c $(BUILD_DIR)/$(TEST)-inter.out $(BUILD_DIR)/$(TEST)-riscv.out
 
 clean:
 	rm -rf $(BUILD_DIR)
