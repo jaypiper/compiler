@@ -54,7 +54,7 @@ int label_num = 0;
 // Vtype* _type_int;
 // Vtype* _type_float;
 
-void print_insts(char* filename){
+void print_intercode(char* filename){
 #ifdef DISPLAY_INTERCODE
     FILE* fp = fopen(filename, "w");
     for(int i = 0; i < inst_num; i++) {
@@ -69,7 +69,7 @@ void print_insts(char* filename){
 void gen_intercode(Node* root, char* file){
     intercode_init();
     program(root);
-    print_insts(file);
+    print_intercode(file);
 }
 
 void intercode_init(){
