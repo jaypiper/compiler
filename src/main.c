@@ -22,6 +22,6 @@ int main(int argc, char** argv){
     // semantic_check(root);
     assert(syn_correct);
     gen_intercode(root, argv[2]);
-    // print_mips(argv[2]);
+    gen_riscv(argv[3]);
     return 0;
 }

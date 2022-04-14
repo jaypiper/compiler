@@ -1,278 +1,352 @@
+#include <common.h>
 #include <assembly.h>
 
 extern char* insts[];
 extern InstType* instType[];
 extern int inst_num;
 FILE* fp = NULL;
+
+rvInst_t rvInsts[MAX_RV_INST];
+int total_rvInst = 0;
+
+varInfo_t varInfo[MAX_VAR_NUM];
+int varInfo_idx = 0;
+// stacks for function call
+funcInfo_t funcInfo[FUNC_STACK_DEPTH];
+int stack_idx = 0;
+
 const char* names[] = {
-	"$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", 
-    "$t0",   "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7", //8 -15
-	"$s0",   "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7", //16-23
-	"$t8",   "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra"
+	"$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+  "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+  "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+  "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
-reg_list* head;
-reg_list* tail;
+regState_t regState[32];
+int sreg[] = {8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27}; // s0 - s11
+int sregIdx = 0;
+
 int regs[32];
-int val_offset[4096];
-int val_reg[4096];
 int offset = 0;
+static int dst_reg, src1_reg, src2_reg;
+static char buf[128];
+
+static uint8_t used_regs[32];
+static int used_regs_num = 0;
+static int stack_instIdx = 0;
+static int regsave_instIdx = 0;
+static int areg[] = {10, 11, 12, 13, 14, 15, 16, 17};
+static int argnum = 0;
+static int paramnum = 0;
+
+void init_riscv(){
+	add_noindent_inst(".section .text");
+	add_noindent_inst(".globl _start");
+
+	add_noindent_inst("_start:");
+	add_normal_inst("mv s0, zero");
+	add_normal_inst("la sp, _stack_pointer");
+	add_normal_inst("jal main");
+
+	add_noindent_inst("syscall:");
+	add_normal_inst("mv a2, a3");
+	add_normal_inst("mv a1, a2");
+	add_normal_inst("mv a0, a1");
+	add_normal_inst("mv a7, a0");
+	add_normal_inst("ecall");
+	add_normal_inst("ret");
+}
+
 void init(){
-    head = malloc(sizeof(reg_list));
-    tail = head;
-    reg_list* tem = head;
-    for(int i = 8; i <= 23; i++){
-       reg_list* new_reg = malloc(sizeof(reg_list));
-       new_reg->id = i;
-       new_reg->next = NULL;
-       tem->next = new_reg;
-       tem = new_reg;
-       tail = new_reg;
-    }
-    memset(val_offset, 0, sizeof(val_offset));
+	for(int i = 0; i < 32; i++) regState[i].var_id = -1;
+	sregIdx = 0;
+	memset(funcInfo, 0, sizeof(funcInfo));
+	stack_idx = 0;
+	memset(varInfo, 0, sizeof(varInfo));
+	varInfo_idx = 0;
+  // memset(val_offset, 0, sizeof(val_offset));
+	memset(rvInsts, 0, sizeof(rvInsts));
+	init_riscv();
 }
 
-
-void print_mips(char* filename){
-    init();
-    fp = fopen(filename, "w");
-    assert(fp);
-    fprintf(fp, ".data\n");
-    fprintf(fp, "_promp: .asciiz \"Enter an integer:\".");
-    fprintf(fp, "_ret: .asciiz \"\\n\"\n");
-    fprintf(fp, ".globl main\n");
-    fprintf(fp, ".text\n");
-
-    fprintf(fp, "read:\n");
-    fprintf(fp, "   li $v0, 4\n");
-    fprintf(fp, "   la $a0, _prompt\n");
-    fprintf(fp, "   syscall\n");
-    fprintf(fp, "   li $v0, 5\n");  //read int
-    fprintf(fp, "   syscall\n");
-    fprintf(fp, "   jr $ra\n\n");
-
-    fprintf(fp, "write:\n");
-    fprintf(fp, "   li $v0, 1\n"); //print int
-    fprintf(fp, "   syscall\n");
-    fprintf(fp, "   li $v0, 4\n"); //print string
-    fprintf(fp, "   la $a0, _ret\n");
-    fprintf(fp, "   syscall\n");
-    fprintf(fp, "   move $v0, $0\n");
-    fprintf(fp, "   jr $ra\n");
-    
-    for(int i = 0; i < inst_num; i++){
-        // printf("%d %d\n", i, inst_num);
-        // fprintf(fp, "%s\n", insts[i]);
-        gen_inst(i);
-    }
+void push_stack(int reg_id){ // store the variable bound to reg_id, if exists, into stack
+	if(reg_id <= 0) return;
+	int var_id = regState[reg_id].var_id;
+	if(var_id < 0) return;
+	// update varInfo for save_var_id
+	varInfo[var_id].reg_id = 0;
+	varInfo[var_id].stack_offset = offset;
+	add_normal_inst("sw %s, %d($sp)", names[reg_id], offset);
+	offset += 8;
 }
 
-
+void fetch_var_from_stack(int var_id, int reg_id){ // move var to reg
+	assert(var_id >= 0 && reg_id >=0);
+	int offset = varInfo[var_id].stack_offset;
+	add_normal_inst("lw %s, %d(sp)", names[reg_id], offset);
+}
 
 int get_reg(Info info){
-    if(val_reg[info.id] != 0) {
-        // printf("%d\n", val_reg[info.id]);
-        return val_reg[info.id];
-    }
-    reg_list* selected = head->next;
-    assert(selected);
-    int ret = selected->id;
-    offset -= 4;
-    val_offset[selected->var_id] = offset;
-    fprintf(fp, "   sw %s, %d($sp)\n", names[selected->id], offset);
-    val_reg[selected->var_id] = 0;
-    if(val_offset[info.id] != 0)
-        fprintf(fp, "   lw %s, %d($sp)\n", names[selected->id], val_offset[info.id]);
-    selected->var_id = info.id;
-    val_reg[info.id] = selected->id;
-    tail->next = selected;
-    head->next = selected->next;
-    selected->next = NULL;
-    tail = selected;
-    // printf("%d\n", ret);
-    return ret;
+	// variable is already in a reg
+  if(varInfo[info.id].reg_id != 0) {
+    return varInfo[info.id].reg_id;
+  }
+	int select_sreg = sreg[sregIdx];
+	sregIdx = sregIdx == 11 ? 0 : sregIdx + 1;
+	// save select_sreg into stack
+	push_stack(select_sreg);
+	// move var to reg
+	fetch_var_from_stack(info.id, select_sreg);
+
+	return select_sreg;
 }
+
+void inst_lable(InstType* inst){
+	add_normal_inst("label%d", inst->dst.value);
+}
+
+void inst_func(InstType* inst){
+	push_funcInfo();
+	add_noindent_inst("%s:", inst->name);
+	add_stack_inst(1, "addi sp, sp %%d");
+	add_savereg_inst();
+}
+
+void inst_assign(InstType* inst){
+	dst_reg = get_reg(inst->dst);
+  if(inst->src1.is_id){
+    src1_reg = get_reg(inst->src1);
+		add_normal_inst("mv %s, %s", names[dst_reg], names[src1_reg]);
+  }else{
+		add_normal_inst("li %s, %d", names[dst_reg], inst->src1.value);
+  }
+}
+
+void inst_add(InstType* inst){
+	dst_reg = get_reg(inst->dst);
+  if(inst->src1.is_id && inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("add %s, %s, %s",  names[dst_reg], names[src1_reg], names[src2_reg]);
+  } else if(inst->src1.is_id && !inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+		add_normal_inst("addi %s, %s, %d", names[dst_reg], names[src1_reg], inst->src2.value);
+  } else if(inst->src2.is_id){
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("addi %s, %s, %d", names[dst_reg], names[src2_reg], inst->src1.value);
+  } else{
+		add_normal_inst("li %s, %d", names[dst_reg], inst->src1.value + inst->src2.value);
+  }
+}
+
+void inst_sub(InstType* inst){
+	dst_reg = get_reg(inst->dst);
+  if(inst->src1.is_id && inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("sub %s, %s, %s",  names[dst_reg], names[src1_reg], names[src2_reg]);
+  } else if(inst->src1.is_id && !inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+		add_normal_inst("addi %s, %s, %d",  names[dst_reg], names[src1_reg], -inst->src2.value);
+  } else if(inst->src2.is_id){
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("sub %s, zero, %s", names[src2_reg], names[src2_reg]);
+		add_normal_inst("addi %s, %s, %d", names[dst_reg], names[src2_reg], inst->src1.value);
+  } else{
+		add_normal_inst("li %s, %d", names[dst_reg], inst->src1.value - inst->src2.value);
+  }
+}
+
+void inst_mul(InstType* inst){
+	dst_reg = get_reg(inst->dst);
+  if(inst->src1.is_id && inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("mul %s, %s, %s", names[dst_reg], names[src1_reg], names[src2_reg]);
+  } else if(inst->src1.is_id && !inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+		add_normal_inst("li t0, %d", inst->src2.value);
+		add_normal_inst("mul %s, %s, t0", names[dst_reg], names[src1_reg]);
+  } else if(inst->src2.is_id){
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("li t0, %d", inst->src1.value);
+		add_normal_inst("mul %s, %s, t0", names[dst_reg], names[src2_reg]);
+  } else{
+		add_normal_inst("li %s, %d", names[dst_reg], inst->src1.value * inst->src2.value);
+  }
+}
+
+void inst_div(InstType* inst){
+	dst_reg = get_reg(inst->dst);
+	if(inst->src1.is_id && inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("div %s, %s, %s", names[dst_reg], names[src1_reg], names[src2_reg]);
+  } else if(inst->src1.is_id && !inst->src2.is_id){
+    src1_reg = get_reg(inst->src1);
+		add_normal_inst("li t0, %d", inst->src2.value);
+		add_normal_inst("div %s, %s, t0", names[dst_reg], names[src1_reg]);
+  } else if(inst->src2.is_id){
+    src2_reg = get_reg(inst->src2);
+		add_normal_inst("li t0, %d", inst->src1.value);
+		add_normal_inst("div %s, t0, %s", names[dst_reg], names[src2_reg]);
+  } else{
+		add_normal_inst("li %s, %d", names[dst_reg], inst->src1.value / inst->src2.value);
+  }
+}
+
+void inst_addr(InstType* inst){
+	dst_reg = get_reg(inst->dst);
+	add_normal_inst("la %s, v%d", names[dst_reg], inst->src1.id);
+}
+
+void inst_star(InstType* inst){ // TODO: lstar & rstar
+// this is the implementation of lstar(store)
+	dst_reg = get_reg(inst->dst);
+  if(inst->src1.is_id){
+    src1_reg = get_reg(inst->src1);
+		add_normal_inst("sd %s, 0(%s)", names[src1_reg], names[dst_reg]);
+  } else{
+		add_normal_inst("li t0, %d", inst->src1.value);
+		add_normal_inst("sd t0, 0(%s)", names[dst_reg]);
+  }
+}
+
+void inst_goto(InstType* inst){
+	add_normal_inst("j label%d", inst->dst.id);
+}
+
+void inst_if(InstType* inst){
+	if(inst->src1.is_id) src1_reg = get_reg(inst->src1);
+  if(inst->src2.is_id) src2_reg = get_reg(inst->src2);
+	char tmp_str[MAX_INST_LEN];
+  if(strcmp(inst->op, "==") == 0){
+		strcpy(tmp_str, "beq ");
+  } else if(strcmp(inst->op, "!=") == 0){
+    strcpy(tmp_str, "bne ");
+  } else if(strcmp(inst->op, ">") == 0){
+    strcpy(tmp_str, "bgt ");
+  } else if(strcmp(inst->op, "<") == 0){
+    strcpy(tmp_str, "blt ");
+  } else if(strcmp(inst->op, ">=") == 0){
+    strcpy(tmp_str, "bge ");
+  } else if(strcmp(inst->op, "<=") == 0){
+    strcpy(tmp_str, "ble ");
+  }
+
+	
+  if(inst->src1.is_id) sprintf(tmp_str + strlen(tmp_str), "%s, ", names[src1_reg]);
+  else{
+		add_normal_inst("li t0, %d", inst->src1.value);
+		sprintf(tmp_str + strlen(tmp_str), "t0, ");
+	}
+
+  if(inst->src2.is_id){
+    sprintf(tmp_str, "%s, label%d", names[src2_reg], inst->dst.value);
+  } else{
+		add_normal_inst("li t1, %d", inst->src2.value);
+    sprintf(tmp_str, "t1, label%d", inst->dst.value);
+  }
+	add_normal_inst("%s", tmp_str);
+}
+
+static void inst_return(InstType* inst){
+	update_stack_inst();
+	add_recoverreg_inst();
+	add_normal_inst("addi sp, sp, %d", offset);
+	pop_funcInfo();
+	add_normal_inst("ret");
+	argnum = 0;
+}
+
+static void inst_arg(InstType* inst){
+	src1_reg = get_reg(inst->src1);
+	add_normal_inst("mv %s, %s", names[areg[argnum ++]], names[src1_reg]);
+}
+
+void inst_call(InstType* inst){
+	add_normal_inst("call %s", inst->name);
+	paramnum = 0;
+}
+
+void inst_param(InstType* inst){
+	varInfo[inst->dst.value].reg_id = areg[paramnum ++];
+}
+
+
+static void (*instFunc[])(InstType* inst) = {
+	[TP_LABEL] 		= inst_lable,
+	[TP_FUNCT] 		= inst_func,
+	[TP_ASSIGN] 	= inst_assign,
+	[TP_ADD] 			= inst_add,
+	[TP_SUB] 			= inst_sub,
+	[TP_MUL] 			= inst_mul,
+	[TP_DIV] 			= inst_div,
+	[TP_ADDR] 		= inst_addr,
+	[TP_STAR] 		= inst_star,
+	[TP_GOTO] 		= inst_goto,
+	[TP_IF] 			= inst_if,
+	[TP_RETURN] 	= inst_return,
+	[TP_ARG] 			= inst_arg,
+	[TP_CALL] 		= inst_call,
+	[TP_PARAM] 		= inst_param,
+};
 
 
 void gen_inst(int id){
-    int dst_reg, src1_reg, src2_reg;
-    char buf[128];
-    switch(instType[id]->type){
-        case TP_LABEL: 
-            fprintf(fp, "label%d\n", instType[id]->dst.value);
-            break;
-        case TP_FUNCT:
-            fprintf(fp, "%s:\n", instType[id]->name);
-            fprintf(fp, "   subu $sp, $sp\n"); //push sp
-            fprintf(fp, "   sw $fp, 0($sp)\n");
-            fprintf(fp, "   move $fp, $sp\n");
-            fprintf(fp, "   subu $sp, $sp, %d\n", STACK_SIZE);
-            offset = 0;
-            // funcSave();
-            break;
-        case TP_ASSIGN:
-            dst_reg = get_reg(instType[id]->dst);
-            if(instType[id]->src1.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                fprintf(fp, "   move %s, %s\n", names[dst_reg], names[src1_reg]);
-            }
-            else{
-                fprintf(fp, "   li %s, %d\n", names[dst_reg], instType[id]->src1.value);
-            }
-            break;
-        case TP_ADD:
-            dst_reg = get_reg(instType[id]->dst);
-            if(instType[id]->src1.is_id && instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                src2_reg = get_reg(instType[id]->src2);
-                fprintf(fp, "   add %s, %s, %s\n", names[dst_reg], names[src1_reg], names[src2_reg]);
-            }
-            else if(instType[id]->src1.is_id && ! instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                fprintf(fp, "   addi %s, %s, %d\n", names[dst_reg], names[src1_reg], instType[id]->src2.value);
-            }
-            else if(instType[id]->src2.is_id){
-                src2_reg = get_reg(instType[id]->src2);
-                fprintf(fp, "   addi %s, %s, %d\n", names[dst_reg], names[src2_reg], instType[id]->src1.value);
-            }
-            else{
-                fprintf(fp, "   li %s, %d\n", names[dst_reg], instType[id]->src1.value + instType[id]->src2.value);
-            }
-            break;
-        case TP_SUB:
-            dst_reg = get_reg(instType[id]->dst);
-            if(instType[id]->src1.is_id && instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                src2_reg = get_reg(instType[id]->src2);
-                fprintf(fp, "   sub %s, %s, %s\n", names[dst_reg], names[src1_reg], names[src2_reg]);
-            }
-            else if(instType[id]->src1.is_id && ! instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                fprintf(fp, "   sub %s, %s, %d\n", names[dst_reg], names[src1_reg], instType[id]->src2.value);
-            }
-            else{
-                fprintf(fp, "   li %s, %d\n", names[dst_reg], instType[id]->src1.value - instType[id]->src2.value);
-            }
-            break;
-        case TP_MUL:
-            dst_reg = get_reg(instType[id]->dst);
-            if(instType[id]->src1.is_id && instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                src2_reg = get_reg(instType[id]->src2);
-                fprintf(fp, "   mul %s, %s, %s\n", names[dst_reg], names[src1_reg], names[src2_reg]);
-            }
-            else if(instType[id]->src1.is_id && ! instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                fprintf(fp, "   mul %s, %s, %d\n", names[dst_reg], names[src1_reg], instType[id]->src2.value);
-            }
-            else if(instType[id]->src2.is_id){
-                src2_reg = get_reg(instType[id]->src2);
-                fprintf(fp, "   mul %s, %s, %d\n", names[dst_reg], names[src2_reg], instType[id]->src1.value);
-            }
-            else{
-                fprintf(fp, "   li %s, %d\n", names[dst_reg], instType[id]->src1.value * instType[id]->src2.value);
-            }
-            break;
-        case TP_DIV:
-            dst_reg = get_reg(instType[id]->dst);
-            if(instType[id]->src1.is_id && instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                src2_reg = get_reg(instType[id]->src2);
-                fprintf(fp, "   div %s, %s, %s\n", names[dst_reg], names[src1_reg], names[src2_reg]);
-            }
-            else if(instType[id]->src1.is_id && ! instType[id]->src2.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                fprintf(fp, "   div %s, %s, %d\n", names[dst_reg], names[src1_reg], instType[id]->src2.value);
-            }
-            else{
-                fprintf(fp, "   li %s, %d\n", names[dst_reg], instType[id]->src1.value / instType[id]->src2.value);
-            }
-            break;
-        case TP_ADDR:
-            dst_reg = get_reg(instType[id]->dst);
-            src1_reg = get_reg(instType[id]->src1);
-            fprintf(fp, "   li %s, 0(%s)\n", names[dst_reg], names[src1_reg]);
-            break;
-        case TP_STAR:
-            dst_reg = get_reg(instType[id]->dst);
-            if(instType[id]->src1.is_id){
-                src1_reg = get_reg(instType[id]->src1);
-                fprintf(fp, "   sw %s, 0(%s)\n", names[src1_reg], names[dst_reg]);
-            }
-            else{
-                fprintf(fp, "   sw %d, 0(%s)\n", instType[id]->src1.value, names[dst_reg]);
-            }
-            break;
-        case TP_GOTO:
-            fprintf(fp, "   j label%d\n", instType[id]->dst.id);
-            break;
-        case TP_IF:
-            if(instType[id]->src1.is_id)
-                src1_reg = get_reg(instType[id]->src1);
-            if(instType[id]->src2.is_id)
-                src2_reg = get_reg(instType[id]->src2);
-            if(strcmp(instType[id]->op, "==") == 0){
-                fprintf(fp, "   beq ");
-            } else if(strcmp(instType[id]->op, "!=") == 0){
-                fprintf(fp, "   bne ");
-            } else if(strcmp(instType[id]->op, ">") == 0){
-                fprintf(fp, "   bgt ");
-            } else if(strcmp(instType[id]->op, "<") == 0){
-                fprintf(fp, "   blt ");
-            } else if(strcmp(instType[id]->op, ">=") == 0){
-                fprintf(fp, "   bge ");
-            } else if(strcmp(instType[id]->op, "<=") == 0){
-                fprintf(fp, "   ble ");
-            }
+	void (*instfunc)(InstType* inst) = instFunc[instType[id]->type];
+	instfunc(instType[id]);
+}
 
-            if(instType[id]->src1.is_id){
-                // src1_reg = get_reg(instType[id]->src1);
-                fprintf(fp, "%s, ", names[src1_reg]);
-            }
-            else{
-                fprintf(fp, "%d, ", instType[id]->src1.value);
-            }
-            if(instType[id]->src2.is_id){
-                // src2_reg = get_reg(instType[id]->src2);
-                fprintf(fp, "%s, label%d\n", names[src2_reg], instType[id]->dst.value);
-            }
-            else{
-                fprintf(fp, "%d, label%d\n", instType[id]->src2.value, instType[id]->dst.value);
-            }
-            break;
-        case TP_RETURN:
-            if(instType[id]->dst.is_id){
-                dst_reg = get_reg(instType[id]->dst);
-                fprintf(fp, "   move $v0, %s\n", names[dst_reg]);
-            }
-            else{
-                fprintf(fp, "   move $v0, %d\n", instType[id]->dst.value);
-            }
-            fprintf(fp, "   addi $sp, $sp, %d\n", STACK_SIZE);
-            fprintf(fp, "   lw $fp, 0($sp)\n");
-            fprintf(fp, "   addi $sp, $sp, 4\n");
-            fprintf(fp, "   jr $ra\n\n");
-            break;
-        case TP_ARG:
-            break;
-        case TP_CALL:
-            break;
-        case TP_PARAM:
-            break;
-        case TP_READ:
-            fprintf(fp, "   subu $sp, $sp, 4\n");
-            fprintf(fp, "   sw $ra, 0($sp)\n");
-            fprintf(fp, "   jal read\n");
-            fprintf(fp, "   lw $ra, 0($sp)\n");
-            fprintf(fp, "   addi $sp, $sp, 4\n");
-            break;
-        case TP_WRITE:
-            fprintf(fp, "   subu $sp, $sp, 4\n");
-            fprintf(fp, "   sw $ra, 0($sp)\n");
-            fprintf(fp, "   jal write\n");
-            fprintf(fp, "   lw $ra, 0($sp)\n");
-            fprintf(fp, "   addi $sp, $sp, 4\n");
-            break;
-    }
-    
+void print_insts(char* filename){
+	FILE* fp = fopen(filename, "w");
+	uint32_t bitmap;
+	int idx;
+	int prev_instnum = 0;
+	for(int i = 0; i < total_rvInst; i++){
+		if(rvInsts[i].type != NO_INDENT && prev_instnum) fprintf(fp, "	");
+		if(rvInsts[i].type == NO_INDENT && rvInsts[i].str[strlen(rvInsts[i].str) - 1] == ':') fprintf(fp, "\n");
+		switch(rvInsts[i].type){
+			case NO_INDENT:
+			case NORMAL_INST:
+					fprintf(fp, "%s", rvInsts[i].str); break;
+			case ALLOC_STACK:
+					fprintf(fp, rvInsts[i].str, rvInsts[i].val1); break;
+			case SAVE_REG:
+					bitmap = rvInsts[i].val1;
+					idx = 0;
+					for(int i = 0; i < 32; i++){
+						if(bitmap & 1){
+							fprintf(fp, "sd %s, %d(sp)\n", names[i], idx * 8);
+							idx ++;
+						}
+					}
+					break;
+			case RECOVER_REG:
+					bitmap = rvInsts[i].val1;
+					idx = 0;
+					for(int i = 0; i < 32; i++){
+						if(bitmap & 1){
+							fprintf(fp, "ld %s, %d(sp)\n", names[i], idx * 8);
+							idx ++;
+						}
+					}
+					break;
+			default: assert(0);
+		}
+		if(rvInsts[i].type == NO_INDENT || rvInsts[i].type == NORMAL_INST || rvInsts[i].type == ALLOC_STACK) {
+			prev_instnum = 1;
+			fprintf(fp, "\n");
+		} else{
+			prev_instnum = idx;
+		}
+	}
+}
+
+void gen_riscv(char* filename){
+  init();
+  for(int i = 0; i < inst_num; i++){
+    gen_inst(i);
+  }
+	print_insts(filename);
 }
