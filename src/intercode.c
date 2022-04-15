@@ -154,10 +154,10 @@ void ExtDef(Node* root){ //Done 不会出现全局变量的定义
         for(Vlist* iter = _entry->type->func_para; iter; iter = iter->next){  //加入函数参数信息
             buf = malloc(MAX_INST_WIDTH);
             insts[inst_num ++] = buf;
-            sprintf(buf, "ARG v%d", iter->var_id);
+            sprintf(buf, "PARAM v%d", iter->var_id);
             tp = malloc(sizeof(InstType));
             instType[type_num++] = tp;
-            tp->type = TP_ARG;
+            tp->type = TP_PARAM;
             tp->dst.is_id = 1;
             tp->dst.id = iter->var_id;
         }
@@ -892,20 +892,20 @@ static void Args(Node* root){
     InstType* tp = malloc(sizeof(InstType));
     instType[type_num++] = tp;
 
-    tp->type = TP_PARAM;
+    tp->type = TP_ARG;
     if(_exp->_type == EXP_INT) {
-        sprintf(buf, "PARAM #%d", _exp->ival);
+        sprintf(buf, "ARG #%d", _exp->ival);
         tp->dst.is_id = 0;
         tp->dst.value = _exp->ival;
     }
-    else if(_exp->_type == EXP_FLOAT) sprintf(buf, "PARAM #%f", _exp->fval);
+    else if(_exp->_type == EXP_FLOAT) sprintf(buf, "ARG #%f", _exp->fval);
     else if(_exp->_type == EXP_VAR) {
-        sprintf(buf, "PARAM v%d", _exp->var_id);
+        sprintf(buf, "ARG v%d", _exp->var_id);
         tp->dst.is_id = 1;
         tp->dst.value = _exp->var_id;
     }
     else { //参数为地址时暂时不处理
-        sprintf(buf, "PARAM &v%d", _exp->var_id);
+        sprintf(buf, "ARG &v%d", _exp->var_id);
     }
 
 
