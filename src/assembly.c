@@ -108,7 +108,7 @@ void inst_lable(InstType* inst){
 void inst_func(InstType* inst){
 	push_funcInfo();
 	add_noindent_inst("%s:", inst->name);
-	add_stack_inst(1, "addi sp, sp %%d");
+	add_stack_inst(1, "addi sp, sp, -%%d");
 	add_savereg_inst();
 }
 
