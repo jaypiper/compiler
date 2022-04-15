@@ -61,7 +61,6 @@ void print_intercode(char* filename){
         fprintf(fp, "%s\n", insts[i]);
         if(i < inst_num-1 && strncmp(insts[i + 1], "FUNCTION", 8) == 0) fprintf(fp, "\n");
     }
-    if(inst_num >= 1) fprintf(fp, "%s", insts[inst_num-1]);
 #endif
     assert(inst_num == type_num);
 }
