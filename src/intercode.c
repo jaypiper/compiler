@@ -2,7 +2,7 @@
 #include <common.h>
 
 static void intercode_init();
-static  void _insert(Entry* _entry);
+static  void symTable_insert(Entry* _entry);
 static Entry* _find(char* name);
 static void program(Node* root);
 static void ExtDefList(Node* root);
@@ -33,7 +33,7 @@ static Ilist* ilist_merge(Ilist* _ilist1, Ilist* _ilist2);
 static Eret* addr_process(Eret* _exp);
 
 
-static Entry* head = NULL;  //记录一下所有存在的变量
+static Entry* symTable = NULL;
 
 static Vtype* alloc_int_type(int val){
     Vtype* ret = malloc(sizeof(Vtype));
@@ -72,7 +72,7 @@ void gen_intercode(Node* root, char* file){
 }
 
 void intercode_init(){
-    head = NULL;
+    symTable = NULL;
     // add builtin syscall func. syscall(no, val1, val2, val3)
     Vtype* sys_type = malloc(sizeof(Vtype));
     sys_type->type = TP_FUNC;
@@ -97,14 +97,14 @@ void intercode_init(){
     Entry* sys_entry = malloc(sizeof(Entry));
     sys_entry->type = sys_type;
     sys_entry->name = "syscall";
-    _insert(sys_entry);
+    symTable_insert(sys_entry);
 }
 
-static void _insert(Entry* _entry){
+static void symTable_insert(Entry* _entry){
     // printf("insert %s\n", _entry->name);
     entry_num ++;
-    _entry->next = head;
-    head = _entry;
+    _entry->next = symTable;
+    symTable = _entry;
     // if(_entry->type->type == TP_STRUCTURE){
     //     for(Vlist* tem = _entry->type->_vlist; tem; tem = tem->next)
     //         printf("%s\n", tem->name);
@@ -115,7 +115,7 @@ static void _insert(Entry* _entry){
 
 Entry* _find(char* name){ //在符号表中查找名为name的符号，并将其返回
 // printf("%s\n", name);
-    for(Entry* iter = head; iter; iter = iter->next){
+    for(Entry* iter = symTable; iter; iter = iter->next){
         // printf("%s\n", iter->name);
         if(strcmp(iter->name, name) == 0) {
             // printf("%s %d\n", iter->name, iter->var_id);
@@ -195,7 +195,7 @@ Vtype* StructSpecifier(Node* root){ //Done
             _struct_entry->type = _type;
             _struct_entry->name = _name;
             _struct_entry->var_id = -1;
-            _insert(_struct_entry);   
+            symTable_insert(_struct_entry);
         }
         return _type;
     }
@@ -221,7 +221,7 @@ Entry* VarDec(Node* root, Vtype* _type){ //Done
         _entry->name = root->child[0]->text;
         _entry->type = _type;
         _entry->var_id = var_id ++;
-        // _insert(_entry);
+        // symTable_insert(_entry);
     }
     else if(strcmp(root->child[0]->name, "VarDec") == 0){
         Vtype* new_head = (Vtype*)malloc(sizeof(Vtype));
@@ -244,7 +244,7 @@ Entry* FunDec(Node* root, Vtype* ret_type){ // Done
     if(strcmp(root->child[2]->name, "VarList") == 0) _type->func_para = VarList(root->child[2]);
 
     Entry* _entry = malloc(sizeof(Entry));
-    _insert(_entry);
+    symTable_insert(_entry);
     _entry->name = root->child[0]->text;
     _entry->type = _type;
     return _entry;
@@ -270,7 +270,7 @@ Vlist* VarList(Node* root){ //Done 函数参数定义
 Entry* ParamDec(Node* root){ //Done 函数某一类型参数定义
     Vtype* _type = Specifier(root->child[0]);
     Entry* _entry = VarDec(root->child[1], _type);
-    _insert(_entry);
+    symTable_insert(_entry);
     return _entry;
 }
 
@@ -414,7 +414,7 @@ Vlist* DecList(Node* root, Vtype* _type, int _offset){ //Done
 
 Entry* Dec(Node* root, Vtype* _type){ // Done: 变量定义; 将定义的变量插入表中，如果赋值，则varid记录了存储该变量值的临时变量id
     Entry* _entry = VarDec(root->child[0], _type);
-    _insert(_entry);
+    symTable_insert(_entry);
     if(root->child_num > 1) {
         Eret* _exp = Exp(root->child[2]);
         InstType* tp = malloc(sizeof(InstType));
