@@ -232,9 +232,10 @@ void inst_if(InstType* inst){
     strcpy(tmp_str, "bge ");
   } else if(strcmp(inst->op, "<=") == 0){
     strcpy(tmp_str, "ble ");
-  }
+  } else{
+		assert(0);
+	}
 
-	
   if(inst->src1.is_id) sprintf(tmp_str + strlen(tmp_str), "%s, ", names[src1_reg]);
   else{
 		add_normal_inst("li t0, %d", inst->src1.value);
@@ -242,10 +243,10 @@ void inst_if(InstType* inst){
 	}
 
   if(inst->src2.is_id){
-    sprintf(tmp_str, "%s, label%d", names[src2_reg], inst->dst.value);
+    sprintf(tmp_str +  strlen(tmp_str), "%s, label%d", names[src2_reg], inst->dst.value);
   } else{
 		add_normal_inst("li t1, %d", inst->src2.value);
-    sprintf(tmp_str, "t1, label%d", inst->dst.value);
+    sprintf(tmp_str +  strlen(tmp_str), "t1, label%d", inst->dst.value);
   }
 	add_normal_inst("%s", tmp_str);
 }
