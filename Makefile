@@ -14,7 +14,7 @@ OUTPUT = $(BUILD_DIR)/parser
 SRCS = $(shell find $(SRC_DIR) -name "*.c") $(LEXICAL_OUTPUT) $(SYNTAX_OUTPUT)
 
 CFLAGS = $(addprefix -I,$(INCLUDE_DIR))
-CFLAGS += -lfl
+CFLAGS += -lfl -ggdb
 
 LINK_ADDR = 0x80000000
 TEST_CFLAGS = -nostartfiles -static -T scripts/section.ld
