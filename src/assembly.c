@@ -45,7 +45,7 @@ void init_riscv(){
 
 	add_noindent_inst("_start:");
 	add_normal_inst("mv s0, zero");
-	add_normal_inst("la sp, _stack_pointer");
+	add_normal_inst("li sp, 0x81000000");
 	add_normal_inst("jal main");
 
 	add_noindent_inst("syscall:");
