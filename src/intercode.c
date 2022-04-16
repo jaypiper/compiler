@@ -101,7 +101,7 @@ void print_intercode(char* filename){
 					print_oprand(fp, &instType[i]->dst);
 					break;
 			case TP_CALL :
-					fprintf(fp, "CALL %s", instType[i]->name);
+					fprintf(fp, "v%d = CALL %s", instType[i]->dst.id, instType[i]->name);
 					break;
 			case TP_PARAM :
 					fprintf(fp, "PARAM v%d", instType[i]->dst.id);
