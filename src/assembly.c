@@ -70,13 +70,21 @@ void init(){
 	init_riscv();
 }
 
+void set_varinfo(int is_reg, int var_id, int info){
+	if(is_reg) varInfo[var_id].reg_id = info;
+	else{
+		varInfo[var_id].reg_id = 0;
+		varInfo[var_id].stack_offset = info;
+	}
+	varInfo[var_id].valid = 1;
+}
+
 void push_stack(int reg_id){ // store the variable bound to reg_id, if exists, into stack
 	if(reg_id <= 0) return;
 	int var_id = regState[reg_id].var_id;
 	if(var_id < 0) return;
 	// update varInfo for save_var_id
-	varInfo[var_id].reg_id = 0;
-	varInfo[var_id].stack_offset = offset;
+	set_varinfo(IN_STACK, var_id, offset);
 	add_normal_inst("sw %s, %d($sp)", names[reg_id], offset);
 	offset += 8;
 }
@@ -89,7 +97,7 @@ void fetch_var_from_stack(int var_id, int reg_id){ // move var to reg
 
 int get_reg(Info info){
 	// variable is already in a reg
-  if(varInfo[info.id].reg_id != 0) {
+  if(varInfo[info.id].valid && varInfo[info.id].reg_id != 0) {
     return varInfo[info.id].reg_id;
   }
 	int select_sreg = sreg[sregIdx];
@@ -97,7 +105,8 @@ int get_reg(Info info){
 	// save select_sreg into stack
 	push_stack(select_sreg);
 	// move var to reg
-	fetch_var_from_stack(info.id, select_sreg);
+	if(varInfo[info.id].valid) fetch_var_from_stack(info.id, select_sreg);
+	set_varinfo(IN_REG, info.id, select_sreg);
 
 	return select_sreg;
 }
