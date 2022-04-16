@@ -47,6 +47,7 @@ void init_riscv(){
 	add_normal_inst("mv s0, zero");
 	add_normal_inst("li sp, 0x81000000");
 	add_normal_inst("jal main");
+	add_normal_inst(".word 0x6b");
 
 	add_noindent_inst("syscall:");
 	add_normal_inst("mv a2, a3");
