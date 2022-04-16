@@ -867,7 +867,7 @@ static void Args(Node* root){
 	else if(_exp->_type == EXP_FLOAT) ; //sprintf(buf, "ARG #%f", _exp->fval);
 	else if(_exp->_type == EXP_VAR) {
 		tp->dst.is_id = 1;
-		tp->dst.value = _exp->var_id;
+		tp->dst.id = _exp->var_id;
 	}
 	else { //参数为地址时暂时不处理
 		// sprintf(buf, "ARG &v%d", _exp->var_id);
