@@ -49,7 +49,7 @@ int var_id = 0;
 int label_num = 0;
 
 static inline void print_oprand(FILE* fp, Info* info){
-	if(info->is_id) fprintf(fp, "v%d",info->id);
+	if(info->id >= 0) fprintf(fp, "v%d",info->id);
 	else fprintf(fp, "#%d", info->value);
 }
 
@@ -196,7 +196,6 @@ void ExtDef(Node* root){ // 不会出现全局变量的定义
 			tp = malloc(sizeof(InstType));
 			instType[inst_num++] = tp;
 			tp->type = TP_PARAM;
-			tp->dst.is_id = 1;
 			tp->dst.id = iter->var_id;
 		}
 		CompSt(root->child[2], _type);
@@ -345,13 +344,12 @@ Ilist* Stmt(Node* root , Vtype* func_ret){ //需要实现控制语句
 		if(_exp->_type == EXP_ADDR) _exp = addr_process(_exp);
 		
 		if(_exp->_type == EXP_INT) {
-			tp->dst.is_id = 0;
+			tp->dst.id = -1;
 			tp->dst.value = _exp->ival;
 		}
 		else if(_exp->_type == EXP_FLOAT) ;//sprintf(buf, "RETURN #%f\n", _exp->fval);
 		// else if(_exp->_type == EXP_ADDR) sprintf(buf, "RETURN *v%d\n", _exp->var_id);
 		else {
-			tp->dst.is_id = 1;
 			tp->dst.id = _exp->var_id;
 		}
 		return NULL;
@@ -455,15 +453,13 @@ Entry* Dec(Node* root, Vtype* _type){ // 变量定义; 将定义的变量插入�
 
 		_entry->var_id = var_id ++;
 
-		tp->dst.is_id = 1;
 		tp->dst.id = _entry->var_id;
 		if(_exp->_type == TP_INT) {
-			tp->src1.is_id = 0;
+			tp->src1.id = -1;
 			tp->src1.value = _exp->ival;
 		}
 		else if(_exp->_type == TP_FLOAT) ; //sprintf(buf, "v%d := #%f", _entry->var_id, _exp->fval);
 		else {
-			tp->src1.is_id = 1;
 			tp->src1.id = _exp->var_id;
 		}
 	}
@@ -518,20 +514,18 @@ Eret* Exp(Node* root){ //
 
 			tp->type = TP_SUB;
 			tp->op = "-";
-			tp->dst.is_id = 1;
 			tp->dst.id = ret_entry->var_id;
-			tp->src1.is_id = 0;
+			tp->src1.id = -1;
 			tp->src1.value = 0;
 			
 			if(_entry->_type == EXP_ADDR) _entry = addr_process(_entry);
 			if(_entry->_type == EXP_INT) {
-				tp->src2.is_id = 0;
+				tp->src2.id = -1;
 				tp->src2.value = _entry->ival;
 			}
 			else if(_entry->_type == EXP_FLOAT) ; //sprintf(buf+strlen(buf), "#%f", _entry->fval);
 			// else if(_entry->_type == EXP_ADDR) sprintf(buf+strlen(buf), "*v%d", _entry->var_id);
 			else {
-				tp->src2.is_id = 1;
 				tp->src2.id = _entry->var_id;
 			}
 			return ret_entry;
@@ -557,31 +551,27 @@ Eret* Exp(Node* root){ //
 			if(_exp2->_type == EXP_ADDR) _exp2 = addr_process(_exp2);
 			if(_exp1->_type == EXP_ADDR){
 				tp->type = TP_STAR;
-				tp->dst.is_id = 1;
 				tp->dst.id = _exp1->var_id;
 				if(_exp2->_type == EXP_INT) {
 					// sprintf(buf, "*v%d := %d", _exp1->var_id, _exp2->ival);
-					tp->src1.is_id = 0;
+					tp->src1.id = -1;
 					tp->src1.value = _exp2->ival;
 				}
 				else if(_exp2->_type == EXP_FLOAT) ; //sprintf(buf, "*v%d := #%f", _exp1->var_id, _exp2->fval);
 				else {
-					tp->src1.is_id = 1;
 					tp->src1.id = _exp2->var_id;
 				}
 			}
 			else{
 				tp->type = TP_ASSIGN;
-				tp->dst.is_id = 1;
 				tp->dst.id = _exp1->var_id;
 				if(_exp2->_type == EXP_INT) {
-					tp->src1.is_id = 0;
+					tp->src1.id = -1;
 					tp->src1.value = _exp2->ival;
 				}
 				else if(_exp2->_type == EXP_FLOAT) ; //sprintf(buf, "v%d := #%f", _exp1->var_id, _exp2->fval);
 				// else if(_exp2->_type == EXP_ADDR) sprintf(buf, "v%d := *v%d", _exp1->var_id, _exp2->var_id);
 				else {
-					tp->src1.is_id = 1;
 					tp->src1.id = _exp2->var_id;
 				}
 			}
@@ -637,23 +627,21 @@ Eret* Exp(Node* root){ //
 			if(_exp2->_type == EXP_ADDR) _exp2 = addr_process(_exp2);
 			// if(_exp1->_type == EXP_ADDR) sprintf(buf, "IF *v%d %s ", _exp1->var_id, root->child[1]->text);
 			if(_exp1->_type == EXP_INT) {
-				tp->src1.is_id = 0;
+				tp->src1.id = -1;
 				tp->src1.value = _exp1->ival;
 			}
 			else if(_exp1->_type == EXP_FLOAT) ; //sprintf(buf, "IF #%f %s ", _exp1->fval, root->child[1]->text);
 			else {
-				tp->src1.is_id = 1;
 				tp->src1.value = _exp1->var_id;
 			}
 			tp->op = root->child[1]->text;
 			if(_exp2->_type == EXP_INT) {
-				tp->src2.is_id = 0;
+				tp->src2.id = -1;
 				tp->src2.value = _exp2->ival;
 			}
 			else if(_exp2->_type == EXP_FLOAT) ; //sprintf(buf+strlen(buf), "#%f GOTO ", _exp2->fval);
 			// else if(_exp2->_type == EXP_ADDR) sprintf(buf+strlen(buf), "*v%d GOTO ", _exp2->var_id);
 			else {
-				tp->src2.is_id = 1;
 				tp->src2.value = _exp2->var_id;
 			}
 			_exp1->falselist->tail = _exp1->falselist;
@@ -680,16 +668,14 @@ Eret* Exp(Node* root){ //
 			_entry->_type = EXP_VAR;
 			_entry->var_id = var_id++;
 
-			tp->dst.is_id = 1;
 			tp->dst.id = _entry->var_id;
 			if(_entry1->_type == EXP_INT) {
-				tp->src1.is_id = 0;
+				tp->src1.id = -1;
 				tp->src1.value = _entry1->ival;
 			}
 			else if(_entry1->_type == EXP_FLOAT) ; // sprintf(buf+strlen(buf), "#%f", _entry1->fval);
 			// else if(_entry1->_type == EXP_ADDR) sprintf(buf+strlen(buf), "*v%d", _entry1->var_id);
 			else {
-				tp->src1.is_id = 1;
 				tp->src1.id = _entry1->var_id;
 			}
 
@@ -711,13 +697,12 @@ Eret* Exp(Node* root){ //
 			}
 			else assert(0);
 			if(_entry2->_type == EXP_INT) {
-				tp->src2.is_id = 0;
+				tp->src2.id = -1;
 				tp->src2.value = _entry2->ival;
 			}
 			else if(_entry2->_type == EXP_FLOAT) ; //sprintf(buf+strlen(buf), "#%f", _entry2->fval);
 			// else if(_entry2->_type == EXP_ADDR) sprintf(buf+strlen(buf), "*v%d", _entry2->var_id);
 			else {
-				tp->src2.is_id = 1;
 				tp->src2.id = _entry2->var_id;
 			}
 			return _entry;
@@ -781,13 +766,12 @@ Eret* Exp(Node* root){ //
 				tp->type = TP_WRITE;
 				if(_wexp->_type == EXP_INT) {
 					sprintf(buf, "WRITE #%d", _wexp->ival);
-					tp->dst.is_id = 0;
+					tp->dst.id = -1;
 					tp->dst.value = _wexp->ival;
 				}
 				else if(_wexp->_type == EXP_FLOAT) sprintf(buf, "WRITE #%f", _wexp->fval);
 				else {
 					sprintf(buf, "WRITE v%d", _wexp->var_id);
-					tp->dst.is_id = 1;
 					tp->dst.id = _wexp->var_id;
 				}
 				return NULL;
@@ -823,11 +807,9 @@ Eret* Exp(Node* root){ //
 				InstType* tp = malloc(sizeof(InstType));
 				instType[inst_num++] = tp;
 				tp->type = TP_ADD;
-				tp->dst.is_id = 1;
 				tp->dst.id = _exp->var_id;
-				tp->src1.is_id = 1;
 				tp->src1.id = _entry->var_id;
-				tp->src2.is_id = 0;
+				tp->src2.id = -1;
 				tp->src2.value = _entry->type->ele_width * root->child[2]->child[0]->ival;
 				
 				return _exp;
@@ -838,11 +820,9 @@ Eret* Exp(Node* root){ //
 			InstType* tp = malloc(sizeof(InstType));
 			instType[inst_num++] = tp;
 			tp->type = TP_ADD;
-			tp->dst.is_id = 1;
 			tp->dst.id = _exp->var_id;
-			tp->src1.is_id = 1;
 			tp->src1.id = _exp->var_id;
-			tp->src2.is_id = 0;
+			tp->src2.id = -1;
 			tp->src2.value = _exp->_vtype->ele_width * root->child[2]->child[0]->ival;
 				
 
@@ -861,12 +841,11 @@ static void Args(Node* root){
 
 	tp->type = TP_ARG;
 	if(_exp->_type == EXP_INT) {
-		tp->dst.is_id = 0;
+		tp->dst.id = -1;
 		tp->dst.value = _exp->ival;
 	}
 	else if(_exp->_type == EXP_FLOAT) ; //sprintf(buf, "ARG #%f", _exp->fval);
 	else if(_exp->_type == EXP_VAR) {
-		tp->dst.is_id = 1;
 		tp->dst.id = _exp->var_id;
 	}
 	else { //参数为地址时暂时不处理
@@ -939,9 +918,7 @@ static Eret* addr_process(Eret* _exp){
 	InstType* tp = malloc(sizeof(InstType));
 	instType[inst_num++] = tp;
 	tp->type = TP_DEREF;
-	tp->dst.is_id = 1;
 	tp->dst.id = var_id;
-	tp->src1.is_id = 1;
 	tp->src1.id = _exp->var_id;
 	_exp->_type = EXP_VAR;
 	_exp->var_id = var_id ++;

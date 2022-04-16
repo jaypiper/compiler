@@ -81,7 +81,6 @@ typedef struct INST_LIST{
 
 // void gen_intercode(Node* root);
 typedef struct INFO{
-  int is_id;
   int id;
   int value;
 }Info;

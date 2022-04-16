@@ -125,7 +125,7 @@ void inst_func(InstType* inst){
 
 void inst_assign(InstType* inst){
 	dst_reg = get_reg(inst->dst);
-  if(inst->src1.is_id){
+  if(inst->src1.id >= 0){
     src1_reg = get_reg(inst->src1);
 		add_normal_inst("mv %s, %s", names[dst_reg], names[src1_reg]);
   }else{
@@ -135,14 +135,14 @@ void inst_assign(InstType* inst){
 
 void inst_add(InstType* inst){
 	dst_reg = get_reg(inst->dst);
-  if(inst->src1.is_id && inst->src2.is_id){
+  if(inst->src1.id >= 0 && inst->src2.id >= 0){
     src1_reg = get_reg(inst->src1);
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("add %s, %s, %s",  names[dst_reg], names[src1_reg], names[src2_reg]);
-  } else if(inst->src1.is_id && !inst->src2.is_id){
+  } else if(inst->src1.id >= 0){
     src1_reg = get_reg(inst->src1);
 		add_normal_inst("addi %s, %s, %d", names[dst_reg], names[src1_reg], inst->src2.value);
-  } else if(inst->src2.is_id){
+  } else if(inst->src2.id >= 0){
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("addi %s, %s, %d", names[dst_reg], names[src2_reg], inst->src1.value);
   } else{
@@ -152,14 +152,14 @@ void inst_add(InstType* inst){
 
 void inst_sub(InstType* inst){
 	dst_reg = get_reg(inst->dst);
-  if(inst->src1.is_id && inst->src2.is_id){
+  if(inst->src1.id >= 0 && inst->src2.id >= 0){
     src1_reg = get_reg(inst->src1);
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("sub %s, %s, %s",  names[dst_reg], names[src1_reg], names[src2_reg]);
-  } else if(inst->src1.is_id && !inst->src2.is_id){
+  } else if(inst->src1.id >= 0){
     src1_reg = get_reg(inst->src1);
 		add_normal_inst("addi %s, %s, %d",  names[dst_reg], names[src1_reg], -inst->src2.value);
-  } else if(inst->src2.is_id){
+  } else if(inst->src2.id >= 0){
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("sub %s, zero, %s", names[src2_reg], names[src2_reg]);
 		add_normal_inst("addi %s, %s, %d", names[dst_reg], names[src2_reg], inst->src1.value);
@@ -170,15 +170,15 @@ void inst_sub(InstType* inst){
 
 void inst_mul(InstType* inst){
 	dst_reg = get_reg(inst->dst);
-  if(inst->src1.is_id && inst->src2.is_id){
+  if(inst->src1.id >= 0 && inst->src2.id >= 0){
     src1_reg = get_reg(inst->src1);
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("mul %s, %s, %s", names[dst_reg], names[src1_reg], names[src2_reg]);
-  } else if(inst->src1.is_id && !inst->src2.is_id){
+  } else if(inst->src1.id >= 0){
     src1_reg = get_reg(inst->src1);
 		add_normal_inst("li t0, %d", inst->src2.value);
 		add_normal_inst("mul %s, %s, t0", names[dst_reg], names[src1_reg]);
-  } else if(inst->src2.is_id){
+  } else if(inst->src2.id >= 0){
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("li t0, %d", inst->src1.value);
 		add_normal_inst("mul %s, %s, t0", names[dst_reg], names[src2_reg]);
@@ -189,15 +189,15 @@ void inst_mul(InstType* inst){
 
 void inst_div(InstType* inst){
 	dst_reg = get_reg(inst->dst);
-	if(inst->src1.is_id && inst->src2.is_id){
+	if(inst->src1.id >= 0 && inst->src2.id >= 0){
     src1_reg = get_reg(inst->src1);
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("div %s, %s, %s", names[dst_reg], names[src1_reg], names[src2_reg]);
-  } else if(inst->src1.is_id && !inst->src2.is_id){
+  } else if(inst->src1.id >= 0){
     src1_reg = get_reg(inst->src1);
 		add_normal_inst("li t0, %d", inst->src2.value);
 		add_normal_inst("div %s, %s, t0", names[dst_reg], names[src1_reg]);
-  } else if(inst->src2.is_id){
+  } else if(inst->src2.id >= 0){
     src2_reg = get_reg(inst->src2);
 		add_normal_inst("li t0, %d", inst->src1.value);
 		add_normal_inst("div %s, t0, %s", names[dst_reg], names[src2_reg]);
@@ -214,7 +214,7 @@ void inst_addr(InstType* inst){
 void inst_star(InstType* inst){ // TODO: lstar & rstar
 // this is the implementation of lstar(store)
 	dst_reg = get_reg(inst->dst);
-  if(inst->src1.is_id){
+  if(inst->src1.id >= 0){
     src1_reg = get_reg(inst->src1);
 		add_normal_inst("sd %s, 0(%s)", names[src1_reg], names[dst_reg]);
   } else{
@@ -228,8 +228,8 @@ void inst_goto(InstType* inst){
 }
 
 void inst_if(InstType* inst){
-	if(inst->src1.is_id) src1_reg = get_reg(inst->src1);
-  if(inst->src2.is_id) src2_reg = get_reg(inst->src2);
+	if(inst->src1.id >= 0) src1_reg = get_reg(inst->src1);
+  if(inst->src2.id >= 0) src2_reg = get_reg(inst->src2);
 	char tmp_str[MAX_INST_LEN];
   if(strcmp(inst->op, "==") == 0){
 		strcpy(tmp_str, "beq ");
@@ -247,13 +247,13 @@ void inst_if(InstType* inst){
 		assert(0);
 	}
 
-  if(inst->src1.is_id) sprintf(tmp_str + strlen(tmp_str), "%s, ", names[src1_reg]);
+  if(inst->src1.id >= 0) sprintf(tmp_str + strlen(tmp_str), "%s, ", names[src1_reg]);
   else{
 		add_normal_inst("li t0, %d", inst->src1.value);
 		sprintf(tmp_str + strlen(tmp_str), "t0, ");
 	}
 
-  if(inst->src2.is_id){
+  if(inst->src2.id >= 0){
     sprintf(tmp_str +  strlen(tmp_str), "%s, label%d", names[src2_reg], inst->dst.value);
   } else{
 		add_normal_inst("li t1, %d", inst->src2.value);
@@ -263,7 +263,7 @@ void inst_if(InstType* inst){
 }
 
 static void inst_return(InstType* inst){
-	if(inst->dst.is_id){
+	if(inst->dst.id >= 0){
 		dst_reg = get_reg(inst->dst);
 		add_normal_inst("mv a0, %s", names[dst_reg]);
 	} else{
@@ -279,7 +279,7 @@ static void inst_return(InstType* inst){
 }
 
 static void inst_arg(InstType* inst){
-	if(inst->dst.is_id){
+	if(inst->dst.id >= 0){
 		dst_reg = get_reg(inst->dst);
 		add_normal_inst("mv %s, %s", names[areg[argnum ++]], names[dst_reg]);
 	}else{
