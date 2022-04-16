@@ -50,10 +50,10 @@ void init_riscv(){
 	add_normal_inst(".word 0x6b");
 
 	add_noindent_inst("syscall:");
-	add_normal_inst("mv a2, a3");
-	add_normal_inst("mv a1, a2");
-	add_normal_inst("mv a0, a1");
 	add_normal_inst("mv a7, a0");
+	add_normal_inst("mv a0, a1");
+	add_normal_inst("mv a1, a2");
+	add_normal_inst("mv a2, a3");
 	add_normal_inst("ecall");
 	add_normal_inst("ret");
 }
