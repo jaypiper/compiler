@@ -254,10 +254,10 @@ void inst_if(InstType* inst){
 	}
 
   if(inst->src2.id >= 0){
-    sprintf(tmp_str +  strlen(tmp_str), "%s, label%d", names[src2_reg], inst->dst.value);
+    sprintf(tmp_str +  strlen(tmp_str), "%s, label%d", names[src2_reg], inst->dst.id);
   } else{
 		add_normal_inst("li t1, %d", inst->src2.value);
-    sprintf(tmp_str +  strlen(tmp_str), "t1, label%d", inst->dst.value);
+    sprintf(tmp_str +  strlen(tmp_str), "t1, label%d", inst->dst.id);
   }
 	add_normal_inst("%s", tmp_str);
 }
