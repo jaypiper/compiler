@@ -261,11 +261,11 @@ static void inst_return(InstType* inst){
 }
 
 static void inst_arg(InstType* inst){
-	if(inst->src1.is_id){
-		src1_reg = get_reg(inst->src1);
-		add_normal_inst("mv %s, %s", names[areg[argnum ++]], names[src1_reg]);
+	if(inst->dst.is_id){
+		dst_reg = get_reg(inst->dst);
+		add_normal_inst("mv %s, %s", names[areg[argnum ++]], names[dst_reg]);
 	}else{
-		add_normal_inst("li %s, %d",  names[areg[argnum ++]], inst->src1.value);
+		add_normal_inst("li %s, %d",  names[areg[argnum ++]], inst->dst.value);
 	}
 }
 
