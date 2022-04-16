@@ -263,6 +263,12 @@ void inst_if(InstType* inst){
 }
 
 static void inst_return(InstType* inst){
+	if(inst->dst.is_id){
+		dst_reg = get_reg(inst->dst);
+		add_normal_inst("mv a0, %s", names[dst_reg]);
+	} else{
+		add_normal_inst("li a0, %d", inst->dst.value);
+	}
 	update_stack_inst();
 	add_recoverreg_inst();
 	pop_ra();
