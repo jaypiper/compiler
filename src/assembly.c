@@ -294,7 +294,7 @@ void inst_call(InstType* inst){
 }
 
 void inst_param(InstType* inst){
-	varInfo[inst->dst.value].reg_id = areg[paramnum ++];
+	varInfo[inst->dst.id].reg_id = areg[paramnum ++];
 }
 
 
