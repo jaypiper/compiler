@@ -267,7 +267,7 @@ static void inst_return(InstType* inst){
 	add_normal_inst("addi sp, sp, %d", offset);
 	pop_funcInfo();
 	add_normal_inst("ret");
-	argnum = 0;
+	paramnum = 0;
 }
 
 static void inst_arg(InstType* inst){
@@ -282,7 +282,7 @@ static void inst_arg(InstType* inst){
 void inst_call(InstType* inst){
 	add_normal_inst("call %s", inst->name);
 	set_varinfo(IN_REG, inst->dst.id, 10);
-	paramnum = 0;
+	argnum = 0;
 }
 
 void inst_param(InstType* inst){
