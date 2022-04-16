@@ -43,7 +43,7 @@ static Vtype* alloc_int_type(int val){
 }
 
 InstType* instType[MAX_INST_NUM];
-int type_num = 0;
+int inst_num = 0;
 int entry_num = 0;
 int var_id = 0;
 int label_num = 0;
@@ -56,7 +56,7 @@ static inline void print_oprand(FILE* fp, Info* info){
 void print_intercode(char* filename){
 #ifdef DISPLAY_INTERCODE
 	FILE* fp = fopen(filename, "w");
-	for(int i = 0; i < type_num; i++){
+	for(int i = 0; i < inst_num; i++){
 		switch(instType[i]->type){
 			case TP_LABEL :
 					fprintf(fp, "LABEL l%d :", instType[i]->dst.value);
@@ -189,12 +189,12 @@ void ExtDef(Node* root){ // 不会出现全局变量的定义
 	else if(strcmp(root->child[2]->name, "CompSt") == 0){
 		Entry* _entry = FunDec(root->child[1], _type);
 		InstType* tp = malloc(sizeof(InstType));
-		instType[type_num++] = tp;
+		instType[inst_num++] = tp;
 		tp->type = TP_FUNCT;
 		tp->name = _entry->name;
 		for(Vlist* iter = _entry->type->func_para; iter; iter = iter->next){  //加入函数参数信息
 			tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 			tp->type = TP_PARAM;
 			tp->dst.is_id = 1;
 			tp->dst.id = iter->var_id;
@@ -339,7 +339,7 @@ Ilist* Stmt(Node* root , Vtype* func_ret){ //需要实现控制语句
 	else if(root->child_num == 3){ 
 		Eret* _exp = Exp(root->child[1]);
 		InstType* tp = malloc(sizeof(InstType));
-		instType[type_num++] = tp;
+		instType[inst_num++] = tp;
 		tp->type = TP_RETURN;
 
 		if(_exp->_type == EXP_ADDR) _exp = addr_process(_exp);
@@ -450,7 +450,7 @@ Entry* Dec(Node* root, Vtype* _type){ // 变量定义; 将定义的变量插入�
 	if(root->child_num > 1) {
 		Eret* _exp = Exp(root->child[2]);
 		InstType* tp = malloc(sizeof(InstType));
-		instType[type_num++] = tp;
+		instType[inst_num++] = tp;
 		tp->type = TP_ASSIGN;
 
 		_entry->var_id = var_id ++;
@@ -471,7 +471,7 @@ Entry* Dec(Node* root, Vtype* _type){ // 变量定义; 将定义的变量插入�
 		_entry->var_id = var_id ++;
 
 		InstType* tp = malloc(sizeof(InstType));
-		instType[type_num++] = tp;
+		instType[inst_num++] = tp;
 		tp->type = TP_DEC;
 		tp->dst.id = _entry->var_id;
 		tp->dst.value = _entry->type->width; //不会出现struct
@@ -514,7 +514,7 @@ Eret* Exp(Node* root){ //
 			ret_entry->var_id = var_id++;
 
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 
 			tp->type = TP_SUB;
 			tp->op = "-";
@@ -552,7 +552,7 @@ Eret* Exp(Node* root){ //
 			Eret* _exp2 = Exp(root->child[2]);
 			
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 
 			if(_exp2->_type == EXP_ADDR) _exp2 = addr_process(_exp2);
 			if(_exp1->_type == EXP_ADDR){
@@ -592,7 +592,7 @@ Eret* Exp(Node* root){ //
 			Eret* _exp1 = Exp(root->child[0]);
 			
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 
 			backpatch(_exp1->truelist, label_num);
 			tp->type = TP_LABEL;
@@ -608,7 +608,7 @@ Eret* Exp(Node* root){ //
 		else if(strcmp(root->child[1]->name, "OR") == 0){
 			Eret* _exp1 = Exp(root->child[0]);
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 
 			backpatch(_exp1->falselist, label_num);
 			tp->type = TP_LABEL;
@@ -628,10 +628,10 @@ Eret* Exp(Node* root){ //
 			_exp1->falselist = malloc(sizeof(Ilist));
 			_exp1->truelist->tail = _exp1->truelist;
 			_exp1->truelist->next = NULL;
-			_exp1->truelist->inst_id = type_num;
+			_exp1->truelist->inst_id = inst_num;
 
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 			tp->type = TP_IF;
 			if(_exp1->_type == EXP_ADDR) _exp1 = addr_process(_exp1);
 			if(_exp2->_type == EXP_ADDR) _exp2 = addr_process(_exp2);
@@ -658,10 +658,10 @@ Eret* Exp(Node* root){ //
 			}
 			_exp1->falselist->tail = _exp1->falselist;
 			_exp1->falselist->next = NULL;
-			_exp1->falselist->inst_id = type_num;
+			_exp1->falselist->inst_id = inst_num;
 
 			tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 			tp->type = TP_GOTO;
 
 			return _exp1;
@@ -674,7 +674,7 @@ Eret* Exp(Node* root){ //
 			if(_entry2->_type == EXP_ADDR) _entry2 = addr_process(_entry2);
 
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 			
 			Eret* _entry = malloc(sizeof(Eret));
 			_entry->_type = EXP_VAR;
@@ -732,7 +732,7 @@ Eret* Exp(Node* root){ //
 			_exp->_type = EXP_VAR;
 
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 
 			if(strcmp(root->child[0]->text, "read") == 0){
 				tp->type = TP_READ;
@@ -777,7 +777,7 @@ Eret* Exp(Node* root){ //
 				char* buf = malloc(MAX_INST_WIDTH);
 
 				InstType* tp = malloc(sizeof(InstType));
-				instType[type_num++] = tp;
+				instType[inst_num++] = tp;
 				tp->type = TP_WRITE;
 				if(_wexp->_type == EXP_INT) {
 					sprintf(buf, "WRITE #%d", _wexp->ival);
@@ -799,7 +799,7 @@ Eret* Exp(Node* root){ //
 			Args(root->child[2]);
 
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 
 			tp->type = TP_CALL;
 			tp->dst.id = _exp->var_id;
@@ -821,7 +821,7 @@ Eret* Exp(Node* root){ //
 				_exp->_vtype = _entry->type->next; //存储array中元素的类型
 
 				InstType* tp = malloc(sizeof(InstType));
-				instType[type_num++] = tp;
+				instType[inst_num++] = tp;
 				tp->type = TP_ADD;
 				tp->dst.is_id = 1;
 				tp->dst.id = _exp->var_id;
@@ -836,7 +836,7 @@ Eret* Exp(Node* root){ //
 			_exp->_vtype = _exp->_vtype->next;
 
 			InstType* tp = malloc(sizeof(InstType));
-			instType[type_num++] = tp;
+			instType[inst_num++] = tp;
 			tp->type = TP_ADD;
 			tp->dst.is_id = 1;
 			tp->dst.id = _exp->var_id;
@@ -857,7 +857,7 @@ static void Args(Node* root){
 	Eret* _exp = Exp(root->child[0]);
 
 	InstType* tp = malloc(sizeof(InstType));
-	instType[type_num++] = tp;
+	instType[inst_num++] = tp;
 
 	tp->type = TP_ARG;
 	if(_exp->_type == EXP_INT) {
@@ -903,7 +903,7 @@ static void backpatch(Ilist* tflist, int label_id){
 
 static int gen_label(){
 	InstType* tp = malloc(sizeof(InstType));
-	instType[type_num++] = tp;
+	instType[inst_num++] = tp;
 	tp->type = TP_LABEL;
 	tp->dst.value = label_num ++;
 
@@ -912,11 +912,11 @@ static int gen_label(){
 
 static Ilist* gen_goto(){
 	Ilist* _ilist = malloc(sizeof(Ilist));
-	_ilist->inst_id = type_num;
+	_ilist->inst_id = inst_num;
 	_ilist->next = NULL;
 	_ilist->tail = _ilist;
 	InstType* tp = malloc(sizeof(InstType));
-	instType[type_num++] = tp;
+	instType[inst_num++] = tp;
 	tp->type = TP_GOTO;
 
 	char* buf = malloc(MAX_INST_WIDTH);
@@ -937,7 +937,7 @@ static Eret* addr_process(Eret* _exp){
 	assert(_exp->_type == EXP_ADDR);
 
 	InstType* tp = malloc(sizeof(InstType));
-	instType[type_num++] = tp;
+	instType[inst_num++] = tp;
 	tp->type = TP_DEREF;
 	tp->dst.is_id = 1;
 	tp->dst.id = var_id;
