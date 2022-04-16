@@ -20,6 +20,7 @@ typedef struct regState{
 }regState_t;
 
 typedef struct varInfo{
+  int valid;
   int reg_id;
   int stack_offset;
 }varInfo_t;
@@ -122,3 +123,5 @@ typedef struct rvInst{
 #define pop_ra() \
   add_normal_inst("ld ra, 0(sp)");
 
+#define IN_STACK 0
+#define IN_REG 1
