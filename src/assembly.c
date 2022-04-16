@@ -112,7 +112,7 @@ int get_reg(Info info){
 }
 
 void inst_lable(InstType* inst){
-	add_noindent_inst("label%d:", inst->dst.value);
+	add_noindent_inst("label%d:", inst->dst.id);
 }
 
 void inst_func(InstType* inst){

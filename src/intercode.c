@@ -59,7 +59,7 @@ void print_intercode(char* filename){
 	for(int i = 0; i < inst_num; i++){
 		switch(instType[i]->type){
 			case TP_LABEL :
-					fprintf(fp, "LABEL l%d :", instType[i]->dst.value);
+					fprintf(fp, "LABEL l%d :", instType[i]->dst.id);
 					break;
 			case TP_FUNCT :
 					fprintf(fp, "FUNCTION %s :", instType[i]->name);
@@ -602,7 +602,7 @@ Eret* Exp(Node* root){ //
 
 			backpatch(_exp1->falselist, label_num);
 			tp->type = TP_LABEL;
-			tp->dst.value = label_num;
+			tp->dst.id = label_num;
 
 			Eret* _exp2 = Exp(root->child[2]);
 
@@ -632,7 +632,7 @@ Eret* Exp(Node* root){ //
 			}
 			else if(_exp1->_type == EXP_FLOAT) ; //sprintf(buf, "IF #%f %s ", _exp1->fval, root->child[1]->text);
 			else {
-				tp->src1.value = _exp1->var_id;
+				tp->src1.id = _exp1->var_id;
 			}
 			tp->op = root->child[1]->text;
 			if(_exp2->_type == EXP_INT) {
@@ -642,7 +642,7 @@ Eret* Exp(Node* root){ //
 			else if(_exp2->_type == EXP_FLOAT) ; //sprintf(buf+strlen(buf), "#%f GOTO ", _exp2->fval);
 			// else if(_exp2->_type == EXP_ADDR) sprintf(buf+strlen(buf), "*v%d GOTO ", _exp2->var_id);
 			else {
-				tp->src2.value = _exp2->var_id;
+				tp->src2.id = _exp2->var_id;
 			}
 			_exp1->falselist->tail = _exp1->falselist;
 			_exp1->falselist->next = NULL;
@@ -884,7 +884,7 @@ static int gen_label(){
 	InstType* tp = malloc(sizeof(InstType));
 	instType[inst_num++] = tp;
 	tp->type = TP_LABEL;
-	tp->dst.value = label_num ++;
+	tp->dst.id = label_num ++;
 
 	return label_num - 1;
 }
