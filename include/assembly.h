@@ -114,3 +114,11 @@ typedef struct rvInst{
       bitmap >>= 1; \
     } \
   } while(0)
+
+#define push_ra() \
+  add_normal_inst("sd ra, 0(sp)"); \
+  offset += 8;
+
+#define pop_ra() \
+  add_normal_inst("ld ra, 0(sp)");
+
