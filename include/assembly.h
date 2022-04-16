@@ -94,8 +94,8 @@ typedef struct rvInst{
     add_inst(SAVE_REG, 0, -1, -1, " "); \
     for(int i = 31; i >= 0; i--){ \
       rvInsts[total_rvInst].val1 = (rvInsts[total_rvInst].val1 << 1) | (regState[i].is_used == 1); \
+      offset = regState[i].is_used ? offset + 8 : offset; \
       regState[i].is_used = 0; \
-      offset += 8; \
     } \
     regsave_instIdx = total_rvInst; \
     total_rvInst ++; \
