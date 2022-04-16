@@ -88,7 +88,7 @@ void print_intercode(char* filename){
 			case TP_IF :
 					fprintf(fp, "IF ");
 					print_oprand(fp, &instType[i]->src1);
-					fprintf(fp, "%s", instType[i]->op);
+					fprintf(fp, " %s ", instType[i]->op);
 					print_oprand(fp, &instType[i]->src2);
 					fprintf(fp, " GOTO l%d", instType[i]->dst.id);
 					break;
