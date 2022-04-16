@@ -881,7 +881,6 @@ Eret* Exp(Node* root){ //
 }
 
 static void Args(Node* root){ 
-	if(root->child_num > 1) Args(root->child[2]);
 
 	Eret* _exp = Exp(root->child[0]);
 	char* buf = malloc(MAX_INST_WIDTH);
@@ -906,6 +905,7 @@ static void Args(Node* root){
 		sprintf(buf, "ARG &v%d", _exp->var_id);
 	}
 
+	if(root->child_num > 1) Args(root->child[2]);
 
 }
 
