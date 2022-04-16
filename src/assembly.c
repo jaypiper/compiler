@@ -111,7 +111,7 @@ int get_reg(Info info){
 	return select_sreg;
 }
 
-void inst_lable(InstType* inst){
+void inst_label(InstType* inst){
 	add_noindent_inst("label%d:", inst->dst.id);
 }
 
@@ -299,7 +299,7 @@ void inst_param(InstType* inst){
 
 
 static void (*instFunc[])(InstType* inst) = {
-	[TP_LABEL] 		= inst_lable,
+	[TP_LABEL] 		= inst_label,
 	[TP_FUNCT] 		= inst_func,
 	[TP_ASSIGN] 	= inst_assign,
 	[TP_ADD] 			= inst_add,
