@@ -124,7 +124,6 @@ void inst_func(InstType* inst){
 	stack_num = 0;
 	stackVar_sz = 0;
 	regState[1].is_used = 1;
-	push_funcInfo();
 	add_noindent_inst("%s:", inst->name);
 	add_stack_inst(1, "addi sp, sp, -%%d");
 	add_savereg_inst();
@@ -279,7 +278,6 @@ static void inst_return(InstType* inst){
 	add_recoverreg_inst();
 	add_stack_pop_inst("addi sp, sp, %%d");
 	update_stack_inst();
-	pop_funcInfo();
 	add_normal_inst("ret");
 	paramnum = 0;
 }

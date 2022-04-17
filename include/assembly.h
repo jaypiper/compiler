@@ -48,21 +48,6 @@ typedef struct rvInst{
   int val2;
 }rvInst_t;
 
-#define push_funcInfo() \
-  funcInfo[stack_idx].varInfo_idx = varInfo_idx; \
-  funcInfo[stack_idx].stack_offset = offset; \
-  funcInfo[stack_idx].stack_instIdx = stack_instIdx; \
-  funcInfo[stack_idx].regsave_instIdx = regsave_instIdx; \
-  offset = 0; \
-  stack_idx ++;
-
-#define pop_funcInfo() \
-  stack_idx --; \
-  varInfo_idx = funcInfo[stack_idx].varInfo_idx; \
-  offset = funcInfo[stack_idx].stack_offset; \
-  stack_instIdx = funcInfo[stack_idx].stack_instIdx; \
-  regsave_instIdx = funcInfo[stack_idx].regsave_instIdx;
-
 #define add_inst(_type, _val_num, _val1, _val2, ...) \
   sprintf(rvInsts[total_rvInst].str,  __VA_ARGS__); \
   rvInsts[total_rvInst].type = _type; \
