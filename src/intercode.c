@@ -206,7 +206,7 @@ void ExtDef(Node* root){ // 不会出现全局变量的定义
 		ExtDecList(root->child[1], _type);
 	}
 	else if(strcmp(root->child[1]->name, "SEMI") == 0) return;
-	else if(strcmp(root->child[2]->name, "CompSt") == 0){
+	else if(strcmp(root->child[2]->name, "CompSt") == 0){  // Specifier FunDec CompSt
 		Entry* _entry = FunDec(root->child[1], _type);
 		InstType* tp = malloc(sizeof(InstType));
 		instType[inst_num++] = tp;
@@ -296,12 +296,12 @@ Entry* FunDec(Node* root, Vtype* ret_type){ // get the func variable info FunDec
 	_type->type = TP_FUNCT;
 	_type->ret_type = ret_type;
 	_type->func_para = NULL;
-	if(strcmp(root->child[2]->name, "VarList") == 0) _type->func_para = VarList(root->child[2]);
-
 	Entry* _entry = malloc(sizeof(Entry));
 	_entry->name = root->child[0]->text;
 	_entry->type = _type;
 	symTable_insert(_entry);
+
+	if(strcmp(root->child[2]->name, "VarList") == 0) _type->func_para = VarList(root->child[2]);
 	return _entry;
 }
 
