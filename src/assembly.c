@@ -69,8 +69,10 @@ void init(){
 }
 
 void set_varinfo(int is_reg, int var_id, int info){
-	if(is_reg) varInfo[var_id].reg_id = info;
-	else{
+	if(is_reg) {
+		varInfo[var_id].reg_id = info;
+		regState[info].var_id = var_id;
+	} else{
 		varInfo[var_id].reg_id = 0;
 		varInfo[var_id].stack_offset = info;
 	}
