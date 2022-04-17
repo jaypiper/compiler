@@ -219,6 +219,7 @@ void ExtDef(Node* root){ // 不会出现全局变量的定义
 			tp->dst.id = iter->var_id;
 		}
 		CompSt(root->child[2], _type);
+		pop_symStack();
 	}
 	else assert(0); //不允许出现函数声明，因此直接去掉
 }
@@ -301,6 +302,7 @@ Entry* FunDec(Node* root, Vtype* ret_type){ // get the func variable info FunDec
 	_entry->type = _type;
 	symTable_insert(_entry);
 
+	push_symStack();  // pop in ExtDef
 	if(strcmp(root->child[2]->name, "VarList") == 0) _type->func_para = VarList(root->child[2]);
 	return _entry;
 }
