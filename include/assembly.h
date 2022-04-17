@@ -146,9 +146,6 @@ typedef struct rvInst{
     } \
   } while(0)
 
-#define push_ra() 
-
-#define pop_ra() 
 
 #define IN_STACK 0
 #define IN_REG 1
