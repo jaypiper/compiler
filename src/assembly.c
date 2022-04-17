@@ -347,6 +347,7 @@ void print_insts(char* filename){
 							fprintf(fp, "sd %s, %d(sp)\n", names[i], idx * 8);
 							idx ++;
 						}
+						bitmap >>= 1;
 					}
 					break;
 			case RECOVER_REG:
@@ -357,6 +358,7 @@ void print_insts(char* filename){
 							fprintf(fp, "ld %s, %d(sp)\n", names[i], idx * 8);
 							idx ++;
 						}
+						bitmap >>= 1;
 					}
 					break;
 			case LDST_INST:
