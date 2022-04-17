@@ -32,7 +32,32 @@ static Ilist* ilist_merge(Ilist* _ilist1, Ilist* _ilist2);
 static Eret* addr_process(Eret* _exp);
 
 
-static Entry* symTable = NULL;
+// static Entry* symTable = NULL;
+static Entry* symTable[MAX_SYM_NUM];
+static int sym_num = 0;
+static int depth = 0;
+// static int tmp_symId = MAX_SYM_NUM;
+
+static symStack_t symStack[MAX_STACK_DEPTH];
+
+static int new_tmpSym(){
+	return sym_num ++;
+}
+
+static void push_symStack(){
+	symStack[depth].sym_num = sym_num;
+	printf("push %d\n", sym_num);
+	// symStack[depth].tmp_symId = tmp_symId;
+	depth ++;
+}
+
+static void pop_symStack(){
+	depth --;
+	assert(depth >= 0);
+	sym_num = symStack[depth].sym_num;
+	printf("pop %d\n", sym_num);
+	// tmp_symId = symStack[depth].tmp_symId;
+}
 
 static Vtype* alloc_int_type(int val){
 	Vtype* ret = malloc(sizeof(Vtype));
@@ -45,7 +70,7 @@ static Vtype* alloc_int_type(int val){
 InstType* instType[MAX_INST_NUM];
 int inst_num = 0;
 int entry_num = 0;
-int var_id = 0;
+// int var_id = 0;
 int label_num = 0;
 
 static inline void print_oprand(FILE* fp, Info* info){
@@ -120,7 +145,10 @@ void gen_intercode(Node* root, char* file){
 }
 
 void intercode_init(){
-	symTable = NULL;
+	memset(symTable, 0, sizeof(symTable));
+	sym_num = 0;
+	memset(symStack, 0, sizeof(symStack));
+	depth = 0;
 	// add builtin syscall func. syscall(no, val1, val2, val3)
 	Vtype* sys_type = malloc(sizeof(Vtype));
 	sys_type->type = TP_FUNC;
@@ -149,22 +177,14 @@ void intercode_init(){
 }
 
 static void symTable_insert(Entry* _entry){
-	entry_num ++;
-	_entry->next = symTable;
-	symTable = _entry;
-	// if(_entry->type->type == TP_STRUCTURE){
-	//     for(Vlist* tem = _entry->type->_vlist; tem; tem = tem->next)
-	//         printf("%s\n", tem->name);
-	//     printf("\n");
-	// }
-	
+	_entry->id = sym_num;
+	symTable[sym_num ++] = _entry;
 }
 
 Entry* _find(char* name){ //在符号表中查找名为name的符号，并将其返回
-	for(Entry* iter = symTable; iter; iter = iter->next){
-		if(strcmp(iter->name, name) == 0) {
-			return iter;
-		}
+	for(int i = 0; i < sym_num; i++){
+		if(symTable[i]->name && strcmp(symTable[i]->name, name) == 0)
+			return symTable[i];
 	}
 	assert(0);
 }
@@ -231,7 +251,6 @@ Vtype* StructSpecifier(Node* root){ //Done
 			Entry* _struct_entry = (Entry*)malloc(sizeof(Entry));
 			_struct_entry->type = _type;
 			_struct_entry->name = _name;
-			_struct_entry->var_id = -1;
 			symTable_insert(_struct_entry);
 		}
 		return _type;
@@ -257,7 +276,7 @@ Entry* VarDec(Node* root, Vtype* _type){ //Done
 		_entry = (Entry*)malloc(sizeof(Entry));
 		_entry->name = root->child[0]->text;
 		_entry->type = _type;
-		_entry->var_id = var_id ++;
+		// _entry->var_id = var_id ++;
 	}
 	else if(strcmp(root->child[0]->name, "VarDec") == 0){
 		Vtype* new_head = (Vtype*)malloc(sizeof(Vtype));
@@ -280,9 +299,9 @@ Entry* FunDec(Node* root, Vtype* ret_type){ // get the func variable info FunDec
 	if(strcmp(root->child[2]->name, "VarList") == 0) _type->func_para = VarList(root->child[2]);
 
 	Entry* _entry = malloc(sizeof(Entry));
-	symTable_insert(_entry);
 	_entry->name = root->child[0]->text;
 	_entry->type = _type;
+	symTable_insert(_entry);
 	return _entry;
 }
 
@@ -293,7 +312,7 @@ Vlist* VarList(Node* root){ //Done 函数参数定义
 	_vlist->name = _entry->name;
 	_vlist->var_type = _entry->type;
 	_vlist->next = _vlist->pre = NULL;
-	_vlist->var_id = _entry->var_id;
+	_vlist->var_id = _entry->id;
 	
 	if(root->child_num > 1){
 		Vlist* _surfix = VarList(root->child[2]);
@@ -311,8 +330,10 @@ Entry* ParamDec(Node* root){ //Done 函数某一类型参数定义
 }
 
 void CompSt(Node* root , Vtype* func_ret){ //Done 出现在函数定义 以及 stmt中
+	push_symStack();
 	DefList(root->child[1], -1);
 	StmtList(root->child[2], func_ret);
+	pop_symStack();
 }
 
 void StmtList(Node* root , Vtype* func_ret){ //Done
@@ -453,9 +474,7 @@ Entry* Dec(Node* root, Vtype* _type){ // 变量定义; 将定义的变量插入�
 		instType[inst_num++] = tp;
 		tp->type = TP_ASSIGN;
 
-		_entry->var_id = var_id ++;
-
-		tp->dst.id = _entry->var_id;
+		tp->dst.id = _entry->id;
 		if(_exp->_type == TP_INT) {
 			tp->src1.id = -1;
 			tp->src1.value = _exp->ival;
@@ -466,12 +485,11 @@ Entry* Dec(Node* root, Vtype* _type){ // 变量定义; 将定义的变量插入�
 		}
 	}
 	else if(_entry->type->type == TP_ARRAY || _entry->type->type == TP_STRUCTURE){
-		_entry->var_id = var_id ++;
 
 		InstType* tp = malloc(sizeof(InstType));
 		instType[inst_num++] = tp;
 		tp->type = TP_DEC;
-		tp->dst.id = _entry->var_id;
+		tp->dst.id = _entry->id;
 		tp->dst.value = _entry->type->width; //不会出现struct
 
 		if(_entry->type->type == TP_ARRAY) ;
@@ -488,7 +506,7 @@ Eret* Exp(Node* root){ //
 			Entry* _entry = _find(root->child[0]->text);
 			assert(_entry);
 			_exp->name = _entry->name;
-			_exp->var_id = _entry->var_id;
+			_exp->var_id = _entry->id;
 			_exp->_type = EXP_VAR;
 			_exp->_vtype = _entry->type;
 			return _exp;
@@ -507,30 +525,22 @@ Eret* Exp(Node* root){ //
 	else if(root->child_num == 2){
 		Eret* _entry = Exp(root->child[1]);
 		if(strcmp(root->child[0]->name, "MINUS") == 0){
-			Eret* ret_entry = malloc(sizeof(Eret));
-			ret_entry->_type = EXP_VAR;
-			ret_entry->var_id = var_id++;
-
-			InstType* tp = malloc(sizeof(InstType));
-			instType[inst_num++] = tp;
-
-			tp->type = TP_SUB;
-			tp->op = "-";
-			tp->dst.id = ret_entry->var_id;
-			tp->src1.id = -1;
-			tp->src1.value = 0;
-			
+			if(_entry->_type == EXP_INT) _entry->ival = - _entry->ival;
+			if(_entry->_type == EXP_FLOAT) _entry->fval = - _entry->fval;
 			if(_entry->_type == EXP_ADDR) _entry = addr_process(_entry);
-			if(_entry->_type == EXP_INT) {
-				tp->src2.id = -1;
-				tp->src2.value = _entry->ival;
-			}
-			else if(_entry->_type == EXP_FLOAT) ; //sprintf(buf+strlen(buf), "#%f", _entry->fval);
-			// else if(_entry->_type == EXP_ADDR) sprintf(buf+strlen(buf), "*v%d", _entry->var_id);
-			else {
+			else{
+				InstType* tp = malloc(sizeof(InstType));
+				instType[inst_num++] = tp;
+
+				tp->type = TP_SUB;
+				tp->op = "-";
+				tp->dst.id = new_tmpSym();
+				tp->src1.id = -1;
+				tp->src1.value = 0;
 				tp->src2.id = _entry->var_id;
 			}
-			return ret_entry;
+
+			return _entry;
 		}
 		if(strcmp(root->child[0]->name, "NOT") == 0){  //实验要求中好像没提NOT的指令
 			Eret* _exp = Exp(root->child[1]);
@@ -581,6 +591,7 @@ Eret* Exp(Node* root){ //
 			return _exp1;
 		}
 		else if(strcmp(root->child[1]->name, "AND") == 0){
+
 			Eret* _exp1 = Exp(root->child[0]);
 			
 			InstType* tp = malloc(sizeof(InstType));
@@ -595,6 +606,7 @@ Eret* Exp(Node* root){ //
 			_exp1->truelist = _exp2->truelist;
 			_exp1->falselist->tail->next = _exp2->falselist;
 			_exp1->falselist->tail = _exp2->falselist->tail;
+
 			return _exp1;
 		}
 		else if(strcmp(root->child[1]->name, "OR") == 0){
@@ -663,14 +675,23 @@ Eret* Exp(Node* root){ //
 			if(_entry1->_type == EXP_ADDR) _entry1 = addr_process(_entry1);
 			if(_entry2->_type == EXP_ADDR) _entry2 = addr_process(_entry2);
 
+			assert(_entry1->_type != EXP_FLOAT && _entry2->_type != EXP_FLOAT);
+
+			if(_entry1->_type == EXP_INT && _entry2->_type == EXP_INT){
+				if(strcmp(root->child[1]->name, "PLUS") == 0) _entry1->ival += _entry2->ival;
+				else if(strcmp(root->child[1]->name, "MINUS") == 0) _entry1->ival -= _entry2->ival;
+				else if(strcmp(root->child[1]->name, "STAR") == 0) _entry1->ival *= _entry2->ival;
+				else if(strcmp(root->child[1]->name, "DIV") == 0) _entry1->ival /= _entry2->ival;
+				return _entry1;
+			}
+			Eret* ret = malloc(sizeof(Eret));
+			ret->_type = EXP_VAR;
+			ret->var_id = new_tmpSym();
+
 			InstType* tp = malloc(sizeof(InstType));
 			instType[inst_num++] = tp;
-			
-			Eret* _entry = malloc(sizeof(Eret));
-			_entry->_type = EXP_VAR;
-			_entry->var_id = var_id++;
 
-			tp->dst.id = _entry->var_id;
+			tp->dst.id = ret->var_id;
 			if(_entry1->_type == EXP_INT) {
 				tp->src1.id = -1;
 				tp->src1.value = _entry1->ival;
@@ -707,37 +728,33 @@ Eret* Exp(Node* root){ //
 			else {
 				tp->src2.id = _entry2->var_id;
 			}
-			return _entry;
+			return ret;
 		}
 		else if(strcmp(root->child[0]->name, "LP") == 0) {
 			return Exp(root->child[1]);
 		}
 		
-		else if(strcmp(root->child[0]->name, "ID") == 0){
+		else if(strcmp(root->child[0]->name, "ID") == 0){ // ID LP RP
 			Eret* _exp = malloc(sizeof(Eret));
-			_exp->var_id = var_id ++;
+			_exp->var_id = new_tmpSym();
 			_exp->_type = EXP_VAR;
 
 			InstType* tp = malloc(sizeof(InstType));
 			instType[inst_num++] = tp;
 
-			if(strcmp(root->child[0]->text, "read") == 0){
-				tp->type = TP_READ;
-				tp->dst.id = _exp->var_id;
-			}
-			else {
-				tp->type = TP_CALL;
-				tp->dst.id = _exp->var_id;
-				tp->name = root->child[0]->text;
-			}
+		
+			tp->type = TP_CALL;
+			tp->dst.id = _exp->var_id;
+			tp->name = root->child[0]->text;
 			return _exp;
 		}
 		else if(strcmp(root->child[1]->name, "DOT") == 0){ //lab4不会出现
+			assert(0);
 			Eret* _exp = Exp(root->child[0]); //开头位置存储在变量中
 
 			Eret* ret_exp = malloc(sizeof(Eret));
 			ret_exp->_type = EXP_ADDR;
-			ret_exp->var_id = var_id ++;
+			ret_exp->var_id = new_tmpSym();
 
 			int offset = 0;
 			for(Vlist* iter = _exp->_vtype->_vlist; iter; iter = iter->next){
@@ -759,28 +776,9 @@ Eret* Exp(Node* root){ //
 	}
 	else if(root->child_num == 4){
 		if(strcmp(root->child[1]->name, "LP") == 0){
-			if(strcmp(root->child[0]->text, "write") == 0){
-				Eret* _wexp = Exp(root->child[2]->child[0]);
-				char* buf = malloc(MAX_INST_WIDTH);
-
-				InstType* tp = malloc(sizeof(InstType));
-				instType[inst_num++] = tp;
-				tp->type = TP_WRITE;
-				if(_wexp->_type == EXP_INT) {
-					sprintf(buf, "WRITE #%d", _wexp->ival);
-					tp->dst.id = -1;
-					tp->dst.value = _wexp->ival;
-				}
-				else if(_wexp->_type == EXP_FLOAT) sprintf(buf, "WRITE #%f", _wexp->fval);
-				else {
-					sprintf(buf, "WRITE v%d", _wexp->var_id);
-					tp->dst.id = _wexp->var_id;
-				}
-				return NULL;
-			}
 			Entry* _entry = _find(root->child[0]->text);
 			Eret* _exp = malloc(sizeof(Eret));
-			_exp->var_id = var_id ++;
+			_exp->var_id = new_tmpSym();
 			
 			Args(root->child[2]);
 
@@ -803,14 +801,14 @@ Eret* Exp(Node* root){ //
 				assert(_entry->type->type == TP_ARRAY);
 				Eret* _exp = malloc(sizeof(Eret));
 				_exp->_type = EXP_ADDR;
-				_exp->var_id = var_id ++;
+				_exp->var_id = new_tmpSym();
 				_exp->_vtype = _entry->type->next; //存储array中元素的类型
 
 				InstType* tp = malloc(sizeof(InstType));
 				instType[inst_num++] = tp;
 				tp->type = TP_ADD;
 				tp->dst.id = _exp->var_id;
-				tp->src1.id = _entry->var_id;
+				tp->src1.id = _entry->id;
 				tp->src2.id = -1;
 				tp->src2.value = _entry->type->ele_width * root->child[2]->child[0]->ival;
 				
@@ -916,13 +914,13 @@ static Ilist* ilist_merge(Ilist* _ilist1, Ilist* _ilist2){
 
 static Eret* addr_process(Eret* _exp){
 	assert(_exp->_type == EXP_ADDR);
+	_exp->_type = EXP_VAR;
+	_exp->var_id = new_tmpSym();
 
 	InstType* tp = malloc(sizeof(InstType));
 	instType[inst_num++] = tp;
 	tp->type = TP_DEREF;
-	tp->dst.id = var_id;
+	tp->dst.id = _exp->var_id;
 	tp->src1.id = _exp->var_id;
-	_exp->_type = EXP_VAR;
-	_exp->var_id = var_id ++;
 	return _exp;
 }

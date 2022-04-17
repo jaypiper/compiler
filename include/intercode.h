@@ -9,7 +9,9 @@
 
 #define MAX_INST_NUM 4096
 #define MAX_ENTRY_NUM 2048
+#define MAX_SYM_NUM 1024
 #define MAX_INST_WIDTH 64
+#define MAX_STACK_DEPTH 128
 
 enum EXP_TYPE{EXP_INT = 1, EXP_FLOAT, EXP_VAR, EXP_ADDR}; //exp返回类型
 enum InterType_ {TP_INT=1, TP_FLOAT, TP_ARRAY, TP_FUNC, TP_STRUCTURE}; //数据结构类型
@@ -53,8 +55,7 @@ typedef struct VAR_TYPE{       //存储变量的类型信息
 
 typedef struct HASH_ENTRY{  //符号表中元素结构（实际上并没有使用hash表实现）
   char* name;             //符号名
-  int var_id;             //符号开始id (1)定义初始化 (2)stmt初始化
-  struct HASH_ENTRY* next;
+	int id;
   Vtype* type;            //符号类型
 }Entry;
 
@@ -94,6 +95,11 @@ typedef struct INSTTYPE{
   Info src2;
   Info dst;
 }InstType;
+
+typedef struct symStack{
+	// int tmp_symId;
+	int sym_num;
+}symStack_t;
 
 /* all intercode
 LABEL x :               定义标号x
