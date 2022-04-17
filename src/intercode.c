@@ -46,7 +46,6 @@ static int new_tmpSym(){
 
 static void push_symStack(){
 	symStack[depth].sym_num = sym_num;
-	printf("push %d\n", sym_num);
 	// symStack[depth].tmp_symId = tmp_symId;
 	depth ++;
 }
@@ -55,7 +54,6 @@ static void pop_symStack(){
 	depth --;
 	assert(depth >= 0);
 	sym_num = symStack[depth].sym_num;
-	printf("pop %d\n", sym_num);
 	// tmp_symId = symStack[depth].tmp_symId;
 }
 
