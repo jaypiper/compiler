@@ -525,9 +525,9 @@ Eret* Exp(Node* root){ //
 	else if(root->child_num == 2){
 		Eret* _entry = Exp(root->child[1]);
 		if(strcmp(root->child[0]->name, "MINUS") == 0){
-			if(_entry->_type == EXP_INT) _entry->ival = - _entry->ival;
-			if(_entry->_type == EXP_FLOAT) _entry->fval = - _entry->fval;
 			if(_entry->_type == EXP_ADDR) _entry = addr_process(_entry);
+			if(_entry->_type == EXP_INT) _entry->ival = - _entry->ival;
+			else if(_entry->_type == EXP_FLOAT) _entry->fval = - _entry->fval;
 			else{
 				InstType* tp = malloc(sizeof(InstType));
 				instType[inst_num++] = tp;
