@@ -293,7 +293,7 @@ void inst_call(InstType* inst){
 }
 
 void inst_param(InstType* inst){
-	varInfo[inst->dst.id].reg_id = areg[paramnum ++];
+	set_varinfo(IN_REG, inst->dst.id, areg[paramnum ++]);
 }
 
 
