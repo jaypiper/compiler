@@ -107,7 +107,7 @@ typedef struct rvInst{
     for(int i = 0; i < 12; i++){ \
       if(regState[sreg[i]].is_used == 1){ \
         save_num ++; \
-        rvInsts[total_rvInst].val1 = (rvInsts[total_rvInst].val1 << sreg[i]); \
+        rvInsts[total_rvInst].val1 = rvInsts[total_rvInst].val1 | (1 << sreg[i]); \
       } \
     } \
     rvInsts[regsave_instIdx].val1 = rvInsts[total_rvInst].val1; \
