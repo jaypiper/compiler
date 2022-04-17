@@ -25,13 +25,6 @@ typedef struct varInfo{
   int stack_offset;
 }varInfo_t;
 
-typedef struct funcInfo{
-  int varInfo_idx;
-  int stack_offset;
-  int stack_instIdx;    // instIdx for last function
-  int regsave_instIdx;
-}funcInfo_t;
-
 #define MAX_INST_LEN 32
 #define MAX_RV_INST 4096
 #define MAX_VAR_NUM 4096

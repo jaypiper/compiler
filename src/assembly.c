@@ -11,9 +11,6 @@ int total_rvInst = 0;
 
 varInfo_t varInfo[MAX_VAR_NUM];
 int varInfo_idx = 0;
-// stacks for function call
-funcInfo_t funcInfo[FUNC_STACK_DEPTH];
-int stack_idx = 0;
 
 const char* names[] = {
 	"$0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -63,8 +60,6 @@ void init_riscv(){
 void init(){
 	for(int i = 0; i < 32; i++) regState[i].var_id = -1;
 	sregIdx = 0;
-	memset(funcInfo, 0, sizeof(funcInfo));
-	stack_idx = 0;
 	memset(varInfo, 0, sizeof(varInfo));
 	varInfo_idx = 0;
   // memset(val_offset, 0, sizeof(val_offset));
