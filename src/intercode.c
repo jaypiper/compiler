@@ -380,7 +380,9 @@ Ilist* Stmt(Node* root , Vtype* func_ret){ //需要实现控制语句
 
 		int label1 = gen_label();
 		Ilist* _ilist1 = Stmt(root->child[4], func_ret);
-		Ilist* _n = gen_goto();
+		Ilist* _n = NULL;
+		if(inst_num > 0 && instType[inst_num - 1]->type != TP_RETURN)
+			_n = gen_goto();
 
 		int label2 = gen_label();
 		Ilist* _ilist2 = Stmt(root->child[6], func_ret);
