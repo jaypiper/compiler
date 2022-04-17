@@ -80,7 +80,7 @@ void set_varinfo(int is_reg, int var_id, int info){
 }
 
 void push_stack(int reg_id){ // store the variable bound to reg_id, if exists, into stack
-	if(reg_id <= 0) return;
+	if(reg_id <= 0 || !regState[reg_id].is_used) return;
 	int var_id = regState[reg_id].var_id;
 	if(var_id < 0) return;
 	// update varInfo for save_var_id
@@ -101,15 +101,26 @@ int get_reg(Info info){
     return varInfo[info.id].reg_id;
   }
 	int select_sreg = sreg[sregIdx];
-	regState[select_sreg].is_used = 1;
 	sregIdx = sregIdx == 11 ? 0 : sregIdx + 1;
-	// save select_sreg into stack
 	push_stack(select_sreg);
+	regState[select_sreg].is_used = 1;
+	regState[select_sreg].var_id = info.id;
+	// save select_sreg into stack
 	// move var to reg
 	if(varInfo[info.id].valid) fetch_var_from_stack(info.id, select_sreg);
 	set_varinfo(IN_REG, info.id, select_sreg);
 
 	return select_sreg;
+}
+
+int mv_across_reg(int old_id, int new_id){
+	push_stack(new_id);
+	int var_id = regState[old_id].var_id;
+	regState[new_id].is_used = 1;
+	regState[new_id].var_id = regState[old_id].var_id;
+	regState[old_id].is_used = 0;
+	set_varinfo(IN_REG, var_id, new_id);
+	add_normal_inst("mv %s, %s", names[new_id], names[old_id]);
 }
 
 void inst_label(InstType* inst){
@@ -121,6 +132,7 @@ void inst_func(InstType* inst){
 	for(int i = 0; i < 32; i++) regState[i].is_used = 0;
 	stack_num = 0;
 	stackVar_sz = 0;
+	sregIdx = 0;
 	regState[1].is_used = 1;
 	add_noindent_inst("%s:", inst->name);
 	add_stack_inst(1, "addi sp, sp, -%%d");
@@ -281,6 +293,11 @@ static void inst_return(InstType* inst){
 }
 
 static void inst_arg(InstType* inst){
+	int areg_id = areg[argnum];
+	if(regState[areg_id].is_used){
+		mv_across_reg(areg[argnum], sreg[sregIdx]);
+		sregIdx = sregIdx == 11 ? 0 : sregIdx + 1;
+	}
 	if(inst->dst.id >= 0){
 		dst_reg = get_reg(inst->dst);
 		add_normal_inst("mv %s, %s", names[areg[argnum ++]], names[dst_reg]);
@@ -296,6 +313,8 @@ void inst_call(InstType* inst){
 }
 
 void inst_param(InstType* inst){
+	int areg_id = areg[paramnum];
+	regState[areg_id].is_used = 1;
 	set_varinfo(IN_REG, inst->dst.id, areg[paramnum ++]);
 }
 
@@ -370,7 +389,7 @@ void print_insts(char* filename){
 					fprintf(fp, rvInsts[i].str, rvInsts[i].val1); break;
 			default: assert(0);
 		}
-		if(rvInsts[i].type == NO_INDENT || rvInsts[i].type == NORMAL_INST || rvInsts[i].type == ALLOC_STACK) {
+		if(rvInsts[i].type == NO_INDENT || rvInsts[i].type == NORMAL_INST || rvInsts[i].type == ALLOC_STACK || rvInsts[i].type == LDST_INST) {
 			prev_instnum = 1;
 			fprintf(fp, "\n");
 		} else{
