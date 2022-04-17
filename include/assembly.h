@@ -94,10 +94,10 @@ typedef struct rvInst{
     add_inst(RECOVER_REG, 0, -1, -1, " "); \
     int save_num = 0; \
     rvInsts[total_rvInst].val1 = 0; \
-    for(int i = 0; i < 32; i++){ \
-      if(regState[i].is_used == 1){ \
+    for(int i = 0; i < sizeof(save_list) / sizeof(save_list[0]); i++){ \
+      if(regState[save_list[i]].is_used == 1){ \
         save_num ++; \
-        rvInsts[total_rvInst].val1 = rvInsts[total_rvInst].val1 | (1 << i); \
+        rvInsts[total_rvInst].val1 = rvInsts[total_rvInst].val1 | (1 << save_list[i]); \
       } \
     } \
     if(save_num * 8 > stackVar_sz){ \

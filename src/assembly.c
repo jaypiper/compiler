@@ -21,6 +21,7 @@ const char* names[] = {
 
 regState_t regState[32];
 int sreg[] = {8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27}; // s0 - s11
+int save_list[] = {1, 8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27};
 int sregIdx = 0;
 
 int regs[32];
