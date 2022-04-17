@@ -86,6 +86,14 @@ typedef struct rvInst{
   do{ \
     add_inst(ALLOC_STACK, val_num, -1, -1, __VA_ARGS__); \
     stack_instIdx = total_rvInst; \
+    stack_inst[stack_num ++] = total_rvInst; \
+    total_rvInst ++; \
+  } while(0)
+
+#define add_stack_pop_inst(...) \
+  do{ \
+    add_inst(ALLOC_STACK, 1, -1, -1, __VA_ARGS__); \
+    stack_inst[stack_num ++] = total_rvInst; \
     total_rvInst ++; \
   } while(0)
 
@@ -93,25 +101,32 @@ typedef struct rvInst{
   do{ \
     add_inst(SAVE_REG, 0, -1, -1, " "); \
     regsave_instIdx = total_rvInst; \
+    rvInsts[regsave_instIdx].val1 = 0; \
     total_rvInst ++; \
   } while(0)
 
 #define update_stack_inst() \
-  rvInsts[stack_instIdx].val1 = offset;
+  do{ \
+    for(int i = 0; i < stack_num; i++) \
+      rvInsts[stack_inst[i]].val1 = offset + stackVar_sz; \
+  } while(0)
 
 #define add_recoverreg_inst(...) \
   do{ \
     add_inst(RECOVER_REG, 0, -1, -1, " "); \
     int save_num = 0; \
     rvInsts[total_rvInst].val1 = 0; \
-    for(int i = 0; i < 12; i++){ \
-      if(regState[sreg[i]].is_used == 1){ \
+    for(int i = 0; i < 32; i++){ \
+      if(regState[i].is_used == 1){ \
         save_num ++; \
-        rvInsts[total_rvInst].val1 = rvInsts[total_rvInst].val1 | (1 << sreg[i]); \
+        rvInsts[total_rvInst].val1 = rvInsts[total_rvInst].val1 | (1 << i); \
       } \
     } \
-    rvInsts[regsave_instIdx].val1 = rvInsts[total_rvInst].val1; \
-    update_ldst_offset(regsave_instIdx + 1, total_rvInst, save_num * 8); \
+    if(save_num * 8 > stackVar_sz){ \
+      rvInsts[regsave_instIdx].val1 = rvInsts[total_rvInst].val1; \
+      stackVar_sz = save_num * 8; \
+      update_ldst_offset(regsave_instIdx + 1, total_rvInst, stackVar_sz); \
+    } \
     total_rvInst ++; \
   } while(0)
 
@@ -131,12 +146,9 @@ typedef struct rvInst{
     } \
   } while(0)
 
-#define push_ra() \
-  add_normal_inst("sd ra, 0(sp)"); \
-  offset += 8;
+#define push_ra() 
 
-#define pop_ra() \
-  add_normal_inst("ld ra, 0(sp)");
+#define pop_ra() 
 
 #define IN_STACK 0
 #define IN_REG 1

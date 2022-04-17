@@ -38,7 +38,9 @@ static int regsave_instIdx = 0;
 static int areg[] = {10, 11, 12, 13, 14, 15, 16, 17};
 static int argnum = 0;
 static int paramnum = 0;
-
+static int stack_inst[32];
+static int stack_num = 0;
+static int stackVar_sz = 0;
 void init_riscv(){
 	add_noindent_inst(".section .text");
 	add_noindent_inst(".globl _start");
@@ -119,6 +121,9 @@ void inst_label(InstType* inst){
 void inst_func(InstType* inst){
 	for(int i = 0; i < MAX_VAR_NUM; i++) varInfo[i].valid = 0;
 	for(int i = 0; i < 32; i++) regState[i].is_used = 0;
+	stack_num = 0;
+	stackVar_sz = 0;
+	regState[1].is_used = 1;
 	push_funcInfo();
 	add_noindent_inst("%s:", inst->name);
 	add_stack_inst(1, "addi sp, sp, -%%d");
@@ -272,10 +277,10 @@ static void inst_return(InstType* inst){
 	} else{
 		add_normal_inst("li a0, %d", inst->dst.value);
 	}
-	update_stack_inst();
 	add_recoverreg_inst();
 	pop_ra();
-	add_normal_inst("addi sp, sp, %d", offset);
+	add_stack_pop_inst("addi sp, sp, %%d");
+	update_stack_inst();
 	pop_funcInfo();
 	add_normal_inst("ret");
 	paramnum = 0;
