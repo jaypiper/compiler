@@ -85,14 +85,14 @@ void push_stack(int reg_id){ // store the variable bound to reg_id, if exists, i
 	if(var_id < 0) return;
 	// update varInfo for save_var_id
 	set_varinfo(IN_STACK, var_id, offset);
-	add_normal_inst("sw %s, %d($sp)", names[reg_id], offset);
+	add_ldst_inst(offset, "sw %s, %%d($sp)", names[reg_id]);
 	offset += 8;
 }
 
 void fetch_var_from_stack(int var_id, int reg_id){ // move var to reg
 	assert(var_id >= 0 && reg_id >=0);
 	int offset = varInfo[var_id].stack_offset;
-	add_normal_inst("lw %s, %d(sp)", names[reg_id], offset);
+	add_ldst_inst(offset, "lw %s, %%d(sp)", names[reg_id]);
 }
 
 int get_reg(Info info){
@@ -101,6 +101,7 @@ int get_reg(Info info){
     return varInfo[info.id].reg_id;
   }
 	int select_sreg = sreg[sregIdx];
+	regState[select_sreg].is_used = 1;
 	sregIdx = sregIdx == 11 ? 0 : sregIdx + 1;
 	// save select_sreg into stack
 	push_stack(select_sreg);
@@ -116,6 +117,8 @@ void inst_label(InstType* inst){
 }
 
 void inst_func(InstType* inst){
+	for(int i = 0; i < MAX_VAR_NUM; i++) varInfo[i].valid = 0;
+	for(int i = 0; i < 32; i++) regState[i].is_used = 0;
 	push_funcInfo();
 	add_noindent_inst("%s:", inst->name);
 	add_stack_inst(1, "addi sp, sp, -%%d");
@@ -356,6 +359,8 @@ void print_insts(char* filename){
 						}
 					}
 					break;
+			case LDST_INST:
+					fprintf(fp, rvInsts[i].str, rvInsts[i].val1); break;
 			default: assert(0);
 		}
 		if(rvInsts[i].type == NO_INDENT || rvInsts[i].type == NORMAL_INST || rvInsts[i].type == ALLOC_STACK) {

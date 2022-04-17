@@ -38,7 +38,7 @@ typedef struct funcInfo{
 
 #define FUNC_STACK_DEPTH 64
 
-enum {NORMAL_INST = 1, NO_INDENT, ALLOC_STACK, SAVE_REG, RECOVER_REG};
+enum {NORMAL_INST = 1, NO_INDENT, ALLOC_STACK, SAVE_REG, RECOVER_REG, LDST_INST};
 
 typedef struct rvInst{
   char str[MAX_INST_LEN];
@@ -92,11 +92,6 @@ typedef struct rvInst{
 #define add_savereg_inst(...) \
   do{ \
     add_inst(SAVE_REG, 0, -1, -1, " "); \
-    for(int i = 31; i >= 0; i--){ \
-      rvInsts[total_rvInst].val1 = (rvInsts[total_rvInst].val1 << 1) | (regState[i].is_used == 1); \
-      offset = regState[i].is_used ? offset + 8 : offset; \
-      regState[i].is_used = 0; \
-    } \
     regsave_instIdx = total_rvInst; \
     total_rvInst ++; \
   } while(0)
@@ -107,12 +102,32 @@ typedef struct rvInst{
 #define add_recoverreg_inst(...) \
   do{ \
     add_inst(RECOVER_REG, 0, -1, -1, " "); \
-    rvInsts[total_rvInst].val1 = rvInsts[regsave_instIdx].val1; \
-    uint32_t bitmap = rvInsts[total_rvInst].val1; \
-    for(int i = 0; i < 32; i++){ \
-      if(bitmap & 1) regState[i].is_used = 1; \
-      else regState[i].is_used = 0; \
-      bitmap >>= 1; \
+    int save_num = 0; \
+    rvInsts[total_rvInst].val1 = 0; \
+    for(int i = 0; i < 12; i++){ \
+      if(regState[sreg[i]].is_used == 1){ \
+        save_num ++; \
+        rvInsts[total_rvInst].val1 = (rvInsts[total_rvInst].val1 << sreg[i]); \
+      } \
+    } \
+    rvInsts[regsave_instIdx].val1 = rvInsts[total_rvInst].val1; \
+    update_ldst_offset(regsave_instIdx + 1, total_rvInst, save_num * 8); \
+    total_rvInst ++; \
+  } while(0)
+
+#define add_ldst_inst(offset, ...) \
+  do{ \
+    add_inst(LDST_INST, 1, -1, -1, __VA_ARGS__); \
+    rvInsts[total_rvInst].val1 = offset; \
+    total_rvInst ++; \
+  } while(0)
+
+#define update_ldst_offset(start, end, increment) \
+  do{ \
+    for(int i = start; i < end; i++){ \
+      if(rvInsts[i].type == LDST_INST){ \
+        rvInsts[i].val1 += increment; \
+      } \
     } \
   } while(0)
 
