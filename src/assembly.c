@@ -330,9 +330,11 @@ void print_insts(char* filename){
 	uint32_t bitmap;
 	int idx;
 	int prev_instnum = 0;
+	int is_first = 1;
 	for(int i = 0; i < total_rvInst; i++){
 		if(rvInsts[i].type != NO_INDENT && prev_instnum) fprintf(fp, "	");
 		if(rvInsts[i].type == NO_INDENT && rvInsts[i].str[strlen(rvInsts[i].str) - 1] == ':') fprintf(fp, "\n");
+		is_first = 1;
 		switch(rvInsts[i].type){
 			case NO_INDENT:
 			case NORMAL_INST:
@@ -344,8 +346,10 @@ void print_insts(char* filename){
 					idx = 0;
 					for(int i = 0; i < 32; i++){
 						if(bitmap & 1){
+							if(!is_first) fprintf(fp, "	");
 							fprintf(fp, "sd %s, %d(sp)\n", names[i], idx * 8);
 							idx ++;
+							is_first = 0;
 						}
 						bitmap >>= 1;
 					}
@@ -355,8 +359,10 @@ void print_insts(char* filename){
 					idx = 0;
 					for(int i = 0; i < 32; i++){
 						if(bitmap & 1){
+							if(!is_first) fprintf(fp, "	");
 							fprintf(fp, "ld %s, %d(sp)\n", names[i], idx * 8);
 							idx ++;
+							is_first = 0;
 						}
 						bitmap >>= 1;
 					}
