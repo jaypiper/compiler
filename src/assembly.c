@@ -83,7 +83,7 @@ void push_stack(int reg_id){ // store the variable bound to reg_id, if exists, i
 	if(var_id < 0) return;
 	// update varInfo for save_var_id
 	set_varinfo(IN_STACK, var_id, offset);
-	add_ldst_inst(offset, "sw %s, %%d($sp)", names[reg_id]);
+	add_ldst_inst(offset, "sw %s, %%d(sp)", names[reg_id]);
 	offset += 8;
 }
 
