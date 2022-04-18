@@ -390,8 +390,13 @@ Ilist* Stmt(Node* root , Vtype* func_ret){ //需要实现控制语句
 			Ilist* _ilist = Stmt(root->child[4], func_ret);
 			backpatch(_ilist, label1);
 			backpatch(_exp->truelist, label2);
+
+			InstType* tp = malloc(sizeof(InstType));
+			tp = malloc(sizeof(InstType));
+			instType[inst_num++] = tp;
+			tp->type = INST_GOTO;
+			tp->dst.id = label1;
 			return _exp->falselist;
-			//书上这里还有一条goto,但我感觉不太需要？
 		}
 
 	}
