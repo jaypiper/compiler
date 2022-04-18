@@ -241,7 +241,7 @@ Vtype* StructSpecifier(Node* root){ //Done
 		Vlist* _deflist = DefList(root->child[3], 0); 
 
 		Vtype* _type = (Vtype*)malloc(sizeof(Vtype));
-		_type->type = TP_STRUCTURE;
+		_type->type = TP_STRUCT_DEF;
 		_type->_vlist = _deflist;
 		if(!_deflist) _type->width = 0;
 		else _type->width = _deflist->followed_sz + _deflist->var_type->width;
@@ -484,7 +484,7 @@ Entry* Dec(Node* root, Vtype* _type){ // 变量定义; 将定义的变量插入�
 			tp->src1.id = _exp->var_id;
 		}
 	}
-	else if(_entry->type->type == TP_ARRAY || _entry->type->type == TP_STRUCTURE){
+	else if(_entry->type->type == TP_ARRAY || _entry->type->type == TP_STRUCT_DEF){
 
 		InstType* tp = malloc(sizeof(InstType));
 		instType[inst_num++] = tp;
@@ -493,7 +493,7 @@ Entry* Dec(Node* root, Vtype* _type){ // 变量定义; 将定义的变量插入�
 		tp->dst.value = _entry->type->width; //不会出现struct
 
 		if(_entry->type->type == TP_ARRAY) ;
-		if(_type->type == TP_STRUCTURE) ;
+		if(_type->type == TP_STRUCT_DEF) ;
 		
 	}
 	return _entry; //struct内部不能赋值

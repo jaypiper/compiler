@@ -14,7 +14,7 @@
 #define MAX_STACK_DEPTH 128
 
 enum EXP_TYPE{EXP_INT = 1, EXP_FLOAT, EXP_VAR, EXP_ADDR}; //exp返回类型
-enum InterType_ {TP_INT=1, TP_FLOAT, TP_ARRAY, TP_FUNC, TP_STRUCTURE}; //数据结构类型
+enum InterType_ {TP_INT=1, TP_FLOAT, TP_ARRAY, TP_FUNC, TP_STRUCT_DEF, TP_STRUCT_VAL}; //数据结构类型
 
 typedef struct VAR_LIST{       // 存储struct内部变量
   char* name;                //变量名
