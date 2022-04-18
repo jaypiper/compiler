@@ -181,7 +181,7 @@ static void symTable_insert(Entry* _entry){
 
 Entry* _find(char* name){ //在符号表中查找名为name的符号，并将其返回
 	for(int i = 0; i < sym_num; i++){
-		if(symTable[i]->name && strcmp(symTable[i]->name, name) == 0)
+		if(symTable[i] && strcmp(symTable[i]->name, name) == 0)
 			return symTable[i];
 	}
 	assert(0);
