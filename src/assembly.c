@@ -320,21 +320,21 @@ void inst_param(InstType* inst){
 
 
 static void (*instFunc[])(InstType* inst) = {
-	[TP_LABEL] 		= inst_label,
-	[TP_FUNCT] 		= inst_func,
-	[TP_ASSIGN] 	= inst_assign,
-	[TP_ADD] 			= inst_add,
-	[TP_SUB] 			= inst_sub,
-	[TP_MUL] 			= inst_mul,
-	[TP_DIV] 			= inst_div,
-	[TP_ADDR] 		= inst_addr,
-	[TP_STAR] 		= inst_star,
-	[TP_GOTO] 		= inst_goto,
-	[TP_IF] 			= inst_if,
-	[TP_RETURN] 	= inst_return,
-	[TP_ARG] 			= inst_arg,
-	[TP_CALL] 		= inst_call,
-	[TP_PARAM] 		= inst_param,
+	[INST_LABEL] 		= inst_label,
+	[INST_FUNC] 		= inst_func,
+	[INST_ASSIGN] 	= inst_assign,
+	[INST_ADD] 			= inst_add,
+	[INST_SUB] 			= inst_sub,
+	[INST_MUL] 			= inst_mul,
+	[INST_DIV] 			= inst_div,
+	[INST_ADDR] 		= inst_addr,
+	[INST_STAR] 		= inst_star,
+	[INST_GOTO] 		= inst_goto,
+	[INST_IF] 			= inst_if,
+	[INST_RETURN] 	= inst_return,
+	[INST_ARG] 			= inst_arg,
+	[INST_CALL] 		= inst_call,
+	[INST_PARAM] 		= inst_param,
 };
 
 
