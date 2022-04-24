@@ -41,8 +41,9 @@ static int stack_num = 0;
 static int stackVar_sz = 0;
 void init_riscv(){
 	add_noindent_inst(".section .text");
+	add_noindent_inst(".globl main");
+#if 0
 	add_noindent_inst(".globl _start");
-
 	add_noindent_inst("_start:");
 	add_normal_inst("mv s0, zero");
 	add_normal_inst("li sp, 0x81000000");
@@ -56,6 +57,7 @@ void init_riscv(){
 	add_normal_inst("mv a2, a3");
 	add_normal_inst("ecall");
 	add_normal_inst("ret");
+#endif
 }
 
 void init(){
