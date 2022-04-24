@@ -219,7 +219,14 @@ void ExtDef(Node* root){ // 不会出现全局变量的定义
 		CompSt(root->child[2], _type);
 		pop_symStack();
 	}
-	else assert(0); //不允许出现函数声明，因此直接去掉
+	else if(strcmp(root->child[1]->name, "FunDec") == 0){
+		Entry* entry = FunDec(root->child[1], _type);
+		pop_symStack();
+	}
+	else {
+		printf("%s %s %s\n", root->child[0]->name, root->child[1]->name, root->child[2]->name);
+		assert(0);
+	}
 }
 
 void ExtDecList(Node* root, Vtype* _type){ //不会进入该函数
